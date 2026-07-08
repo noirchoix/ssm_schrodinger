@@ -1,0 +1,14 @@
+sources:
+  - id: ssm-v1.1-spec
+    title: SSM v1.1 Registry-Enriched Architecture Package
+    role: canonical architecture contract
+  - id: symbolic-logic-layer
+    title: Symbolic Logic Decision Layer Specification
+    role: hard decision and admissibility rules
+packages:
+  fastapi:
+    target: python.fastapi
+    symbols: [FastAPI, APIRouter, Depends, HTTPException]
+  pydantic:
+    target: python
+    symbols: [BaseModel, Field, ConfigDict]

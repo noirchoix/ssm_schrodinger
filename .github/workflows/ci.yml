@@ -1,0 +1,138 @@
+name: framework-ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  framework:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip
+      - run: pip install -e '.[dev]'
+      - run: ruff check src tests
+      - run: ruff format --check src tests
+      - run: mypy src/ssm
+      - run: pytest --cov=ssm --cov-report=term-missing
+      - run: bandit -q -r src/ssm
+      - run: pip-audit
+
+  generated-inventory:
+    runs-on: ubuntu-latest
+    needs: framework
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: app
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: app
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U app -d app"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql+psycopg://app:app@localhost:5432/app
+      POSTGRES_TEST_DATABASE_URL: postgresql+psycopg://app:app@localhost:5432/app
+      RUN_POSTGRES_INTEGRATION: "1"
+      JWT_SECRET_KEY: ci-secret-key-change-me-32-bytes
+      CREATE_DB_ON_STARTUP: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip
+      - run: pip install -e '.[dev]'
+      - run: python -m ssm.cli.main compile examples/inventory_api/project.sml.md --out build/inventory_api
+      - working-directory: build/inventory_api
+        run: pip install -e '.[dev]'
+      - working-directory: build/inventory_api
+        run: ruff check .
+      - working-directory: build/inventory_api
+        run: ruff format --check .
+      - working-directory: build/inventory_api
+        run: mypy app
+      - working-directory: build/inventory_api
+        run: alembic upgrade head
+      - working-directory: build/inventory_api
+        run: alembic downgrade base
+      - working-directory: build/inventory_api
+        run: alembic upgrade head
+      - working-directory: build/inventory_api
+        run: pytest
+      - working-directory: build/inventory_api
+        run: bandit -q -r app
+      - working-directory: build/inventory_api
+        run: pip-audit
+
+  generated-todo:
+    runs-on: ubuntu-latest
+    needs: framework
+    env:
+      JWT_SECRET_KEY: ci-secret-key-change-me-32-bytes
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip
+      - run: pip install -e '.[dev]'
+      - run: python -m ssm.cli.main compile examples/todo_api/project.sml.md --out build/todo_api
+      - working-directory: build/todo_api
+        run: pip install -e '.[dev]'
+      - working-directory: build/todo_api
+        run: ruff check .
+      - working-directory: build/todo_api
+        run: ruff format --check .
+      - working-directory: build/todo_api
+        run: mypy app
+      - working-directory: build/todo_api
+        run: pytest
+      - working-directory: build/todo_api
+        run: bandit -q -r app
+      - working-directory: build/todo_api
+        run: pip-audit
+  online-mock:
+    runs-on: ubuntu-latest
+    needs: framework
+    env:
+      RUN_ONLINE_AI: "1"
+      SSM_AGENT_MODE: online
+      SSM_LLM_PROVIDER: mock
+      SSM_LLM_MODEL: mock
+      JWT_SECRET_KEY: ci-secret-key-change-me-32-bytes
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip
+      - run: pip install -e '.[dev]'
+      - run: >-
+          python -m ssm.cli.main draft
+          --agent-mode online
+          --prompt "Build a FastAPI inventory API with PostgreSQL, JWT auth, product CRUD, SKU uniqueness, pagination, OpenAPI contract tests, and Docker support."
+          --out build/online_inventory/project.sml.md
+      - run: python -m ssm.cli.main validate build/online_inventory/project.sml.md
+      - run: python -m ssm.cli.main compile build/online_inventory/project.sml.md --out build/online_inventory_api
+      - working-directory: build/online_inventory_api
+        run: pip install -e '.[dev]'
+      - working-directory: build/online_inventory_api
+        run: ruff check .
+      - working-directory: build/online_inventory_api
+        run: ruff format --check .
+      - working-directory: build/online_inventory_api
+        run: mypy app
+      - working-directory: build/online_inventory_api
+        run: pytest
+      - working-directory: build/online_inventory_api
+        run: bandit -q -r app
+
