@@ -137,3 +137,12 @@ Online models are restricted to SML drafting and semantic assistance. Final sour
 
 Validated local gates include framework tests, Ruff, formatting, mypy, Bandit, offline determinism, mock online draft, validate, compile, and generated-app quality checks.
 
+
+
+## V1.3.2 secret-scan hotfix
+
+V1.3.2 adds `scripts/secret_scan.py` and `scripts/test_v13_e2e.sh`. The scanner is boundary-aware so ordinary app slugs such as `helpdesk--ticketing--api--tickets` are not misclassified as `sk-` API tokens while real environment secrets and standalone `sk-...` keys are still detected.
+
+## V1.3.2 version-lock release
+
+V1.3.2 aligns package metadata and runtime metadata, replaces the E2E script with the timestamped log-saving release script, and adds release documentation for capability scope, changelog, and tagging. The version-lock gate is `./scripts/test_v13_e2e.sh` from a clean extracted release root.

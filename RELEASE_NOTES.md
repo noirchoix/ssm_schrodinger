@@ -1,0 +1,65 @@
+# SSM Framework v1.3.2 Release Notes
+
+## Release status
+
+`v1.3.2` is the version-lock release for the General Domain Foundation Generator line. It should be treated as the portfolio/developer-tool release that proves the project can move beyond a single inventory benchmark into a reusable app-foundation compiler flow.
+
+The release target is:
+
+```text
+Prompt / app idea
+→ AppFoundationPlan
+→ domain-pack selection
+→ capability negotiation
+→ SML
+→ semantic validation
+→ deterministic FastAPI generation
+→ generated-app quality gates
+→ audit/secret checks
+```
+
+## What is locked in this version
+
+- Generalized planning through `AppFoundationPlan`.
+- Domain-pack registry for common application categories.
+- Capability negotiation before deterministic code generation.
+- Full CRUD route generation for generated FastAPI services.
+- Multi-domain benchmark validation/compilation.
+- Generated-app tests, coverage, Ruff, mypy, Bandit, pip-audit, compileall, and Alembic checks.
+- Mock online-build acceptance loop.
+- Boundary-aware secret scan that avoids false positives on ordinary slugs while still catching likely key material.
+- E2E script with timestamped log capture.
+
+## Known scope limits
+
+- Live provider builds are supported through the provider layer but are not required for the default release gate.
+- PostgreSQL integration is available through `RUN_POSTGRES=1`, but defaults to skipped for local developer convenience.
+- Workflow semantics are represented in SML and planning, but a full workflow runtime engine is V1.4 scope.
+- Tenant/RBAC/audit primitives are represented, but full tenant-scoped runtime enforcement is V1.4 scope.
+- This is a backend foundation generator/compiler, not a complete no-code product.
+
+## Version-lock command
+
+From a clean extracted release root:
+
+```bash
+chmod +x scripts/test_v13_e2e.sh
+./scripts/test_v13_e2e.sh
+```
+
+Expected final line:
+
+```text
+ALL V1.3.2 E2E GATES PASSED
+```
+
+## Git tagging
+
+After the clean E2E gate passes:
+
+```bash
+git add .
+git commit -m "Release v1.3.2 general domain foundation"
+git tag -a v1.3.2 -m "SSM Framework v1.3.2 general domain foundation release"
+git push origin main --follow-tags
+```

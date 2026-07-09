@@ -1,4 +1,4 @@
-# V1.3.1 Coverage Hotfix
+# V1.3.2 Coverage Hotfix
 
 - Fixed generated app coverage failure for multi-entity foundation apps by no longer emitting unused `app/models/*Create.py` persistence-model stubs for DTO schemas.
 - Added generated `tests/test_service_contracts.py` to exercise repository/service full CRUD contracts for each generated entity, including generated apps whose route surface is intentionally list/create only.
@@ -205,3 +205,12 @@ HR Leave benchmark app: 16 passed, 1 skipped, coverage 89.55%, ruff passed, form
 ```
 
 Sandbox limitation: `pip-audit` could not complete because the sandbox could not resolve `pypi.org`. Run `pip-audit` locally or in CI with network/advisory access.
+
+
+## V1.3.2 secret-scan hotfix
+
+V1.3.2 adds `scripts/secret_scan.py` and `scripts/test_v13_e2e.sh`. The scanner is boundary-aware so ordinary app slugs such as `helpdesk--ticketing--api--tickets` are not misclassified as `sk-` API tokens while real environment secrets and standalone `sk-...` keys are still detected.
+
+## V1.3.2 version-lock release
+
+V1.3.2 aligns package metadata and runtime metadata, replaces the E2E script with the timestamped log-saving release script, and adds release documentation for capability scope, changelog, and tagging. The version-lock gate is `./scripts/test_v13_e2e.sh` from a clean extracted release root.

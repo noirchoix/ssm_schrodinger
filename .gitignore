@@ -1,49 +1,30 @@
-# Python bytecode and caches
+# Python
 __pycache__/
 *.py[cod]
-*$py.class
-
-# Virtual environments
-.venv/
-venv/
-env/
-ENV/
-.env
-.env.*
-
-# Testing and coverage
-.pytest_cache/
-.coverage
-.coverage.*
-htmlcov/
-.tox/
-.nox/
-
-# Build and packaging
-build/
-dist/
 *.egg-info/
-.eggs/
-*.egg
-pip-wheel-metadata/
-
-# Type checking and tooling
+.pytest_cache/
 .mypy_cache/
 .ruff_cache/
-.pyre/
+.coverage
+htmlcov/
 
-# IDE/editor settings
-.vscode/
-.idea/
-*.swp
-*.swo
+# Environments
+venv/
+.venv/
+.env
+.env.*
+!.env.example
 
-# Logs and local data
-*.log
-*.sqlite3
-*.db
-*.tmp
+# Builds
+build/
+dist/
 
-# OS files
+# OS/editor
 .DS_Store
 Thumbs.db
+.vscode/
+.idea/
+
+# Local logs
+e2e_logs/
+build/e2e_logs/
