@@ -1,5 +1,24 @@
 # Changelog
 
+## v1.5.0-dev — Platform layer development build
+
+Release type: development milestone, not locked stable.
+
+### Added
+
+- Generated evidence records: manifest, app contract, eval run, capability report, assumptions, unsupported features, provenance hashes, and evidence bundle.
+- `evidence-check` CLI command for generated app evidence validation.
+- Generated platform primitives for tenancy, RBAC, audit capture, workflow transition runtime, and seed/admin CLI scaffold.
+- Generated platform API routes under `/platform`.
+- Generated admin UI shell under `admin/`.
+- Online-build bounded repair attempts and `repair_trace.json`.
+- V1.5 E2E script with evidence, platform, online repair, and admin shell checks.
+
+### Notes
+
+- Internal `online-build --quality-gates` uses fast deterministic gates by default: evidence-check, Ruff, format check, compileall, and Bandit. Full generated-app pytest and mypy remain in the secondary E2E generated-app quality pass. Set `SSM_ONLINE_FULL_GATES=1` to include pytest and mypy inside the repair loop.
+- Tenant-scoped repository filtering, DB-backed audit persistence, full workflow orchestration, and production frontend build hardening remain future hardening layers.
+
 ## v1.3.2 — Version-lock release
 
 Release type: release hygiene and validation lock.

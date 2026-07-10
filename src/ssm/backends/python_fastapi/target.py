@@ -12,6 +12,11 @@ from textwrap import dedent
 from typing import Any
 
 from ssm import __version__
+from ssm.backends.python_fastapi.platform import (
+    evidence_record_files,
+    platform_source_files,
+    platform_test_files,
+)
 from ssm.models import CompileManifest, GeneratedFile, ResolutionResult, SIRGraph
 from ssm.semantic.field_parser import normalize_schema_name, schema_is_list
 
@@ -76,6 +81,7 @@ class PythonFastAPITarget:
             GeneratedFile(path="docker-compose.yml", content=self._docker_compose(repo_strategy))
         )
         files.append(GeneratedFile(path="load/locustfile.py", content=self._locustfile(routes)))
+        files.extend(platform_source_files(graph))
 
         files.append(GeneratedFile(path="app/__init__.py", content=""))
         files.append(
@@ -166,7 +172,7 @@ class PythonFastAPITarget:
                     )
                 )
 
-        for path, content in self._test_files(models, routes, repo_strategy).items():
+        for path, content in self._test_files(graph, models, routes, repo_strategy).items():
             files.append(GeneratedFile(path=path, content=content))
 
         files.append(
@@ -183,7 +189,24 @@ class PythonFastAPITarget:
 
         files = self._canonicalize_generated_files(files)
 
-        generated_names = sorted(f.path for f in files)
+        base_generated_names = sorted(f.path for f in files)
+        provisional_manifest = CompileManifest(
+            compiler_version=__version__,
+            target=self.id,
+            sml_hash=sml_hash,
+            sir_hash=sir_hash,
+            resolved_ir_hash=resolved_ir_hash,
+            generated_files=base_generated_names,
+            selected_candidates={k: v.id for k, v in sorted(resolution.selected.items())},
+            proof_count=len(resolution.proof_trace),
+        )
+        evidence_files = evidence_record_files(
+            graph,
+            resolution,
+            provisional_manifest,
+            base_generated_names,
+        )
+        generated_names = sorted(base_generated_names + [f.path for f in evidence_files])
         manifest = CompileManifest(
             compiler_version=__version__,
             target=self.id,
@@ -194,6 +217,7 @@ class PythonFastAPITarget:
             selected_candidates={k: v.id for k, v in sorted(resolution.selected.items())},
             proof_count=len(resolution.proof_trace),
         )
+        files.extend(evidence_record_files(graph, resolution, manifest, generated_names))
         files.append(
             GeneratedFile(
                 path="sml.manifest.json", content=manifest.model_dump_json(indent=2) + "\n"
@@ -910,6 +934,7 @@ class PythonFastAPITarget:
 
     def _main(self, routes: list[RoutePlan], repo_strategy: str, project_name: str) -> str:
         modules = sorted({self._module_name(r.entity) for r in routes})
+        modules.append("platform")
         lines = [
             "from __future__ import annotations",
             "",
@@ -1356,7 +1381,7 @@ class PythonFastAPITarget:
         """).lstrip()
 
     def _test_files(
-        self, models: dict[str, Any], routes: list[RoutePlan], repo_strategy: str
+        self, graph: SIRGraph, models: dict[str, Any], routes: list[RoutePlan], repo_strategy: str
     ) -> dict[str, str]:
         routes_by_entity: dict[str, list[RoutePlan]] = {}
         for route in routes:
@@ -1696,6 +1721,7 @@ class PythonFastAPITarget:
         )
         if repo_strategy == "sqlalchemy":
             files["tests/test_postgres_integration.py"] = self._postgres_integration_test_file()
+        files.update(platform_test_files(graph))
         return files
 
     def _service_contract_test_file(

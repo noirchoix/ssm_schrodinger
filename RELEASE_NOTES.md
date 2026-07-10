@@ -63,3 +63,12 @@ git commit -m "Release v1.3.2 general domain foundation"
 git tag -a v1.3.2 -m "SSM Framework v1.3.2 general domain foundation release"
 git push origin main --follow-tags
 ```
+
+
+# V1.5.0-dev Development Notes
+
+V1.5.0-dev is a platform-layer development build. It should be treated as the next implementation branch after the locked V1.3.2 release, not as a stable lock.
+
+The main product gain is trustable generated-app output: each generated backend now carries a manifest, app contract, capability report, provenance hashes, assumptions, unsupported features, eval run record, and evidence bundle. The generated app also includes platform primitives, workflow transition runtime, and a static admin UI shell.
+
+Do not claim this version as full SaaS enforcement yet. Tenant propagation, RBAC metadata, audit capture, and workflow transitions are present; full tenant-scoped repositories, DB-backed audit, workflow orchestration, and a production frontend remain future hardening layers.

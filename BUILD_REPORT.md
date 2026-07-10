@@ -214,3 +214,37 @@ V1.3.2 adds `scripts/secret_scan.py` and `scripts/test_v13_e2e.sh`. The scanner 
 ## V1.3.2 version-lock release
 
 V1.3.2 aligns package metadata and runtime metadata, replaces the E2E script with the timestamped log-saving release script, and adds release documentation for capability scope, changelog, and tagging. The version-lock gate is `./scripts/test_v13_e2e.sh` from a clean extracted release root.
+
+
+# V1.5.0-dev Platform Layer Build Report
+
+Implemented from the locked V1.3.2 baseline. This is a development build, not a stable release lock.
+
+## Implemented
+
+- Auto-inspired generated evidence records and release evidence bundle.
+- App contract and capability report generation.
+- Evidence validation CLI.
+- Tenant, RBAC, audit, workflow, platform route, and seed/admin scaffolds.
+- Admin UI shell generation.
+- Online-build repair trace and bounded repair attempts.
+- V1.5 E2E script.
+
+## Validation completed in sandbox
+
+- `pytest -q`: 25 passed.
+- `pytest --cov=ssm --cov-report=term-missing -q`: 25 passed, total coverage 82.94%, threshold 70%.
+- `ruff check src tests`: passed.
+- `ruff format --check src tests`: passed.
+- `mypy src/ssm`: passed.
+- `compileall src tests`: passed.
+- `bandit -q -r src/ssm`: passed.
+- Generated HR Leave app evidence-check: passed.
+- Generated HR Leave app tests: 18 passed, 1 skipped, coverage 89.68%.
+- Generated Inventory app evidence-check: passed.
+- Generated Inventory app tests: 15 passed, 1 skipped, coverage 85.08%.
+- Online mock build: accepted; quick gate results all zero; repair trace written.
+
+## Known dev limitation
+
+The sandbox showed intermittent hangs when running generated-app `pytest` and `mypy` back-to-back in one long shell function. Each gate passed independently. The V1.5 script isolates framework, evidence, generated-app, and online gates and keeps online-build internal gates fast by default.

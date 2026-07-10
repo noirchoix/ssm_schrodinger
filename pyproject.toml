@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "semantic-software-markup"
-version = "1.3.2"
-description = "General-purpose semantic app foundation compiler with deterministic code generation and gated online planning/drafting."
+version = "1.5.0.dev0"
+description = "General-purpose semantic app platform compiler with evidence records, SaaS primitives, workflow runtime, repair loop, and generated admin shell."
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [{ name = "Semantic Software Markup Project" }]

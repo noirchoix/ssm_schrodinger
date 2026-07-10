@@ -1,6 +1,9 @@
-# Semantic Software Markup Compiler — V1.3 General Domain Foundation Generator
+# Semantic Software Markup Compiler — V1.5.0-dev Platform Layer
 
-This repository is the V1.3 general-purpose semantic app foundation compiler. It keeps the compiler-first contract while adding typed app planning, domain packs, capability negotiation, multi-domain benchmarks, and gated online drafting:
+
+This development build extends the locked V1.3.2 general domain foundation compiler with an Auto-inspired platform layer: generated app manifests, app contracts, evidence records, SaaS primitives, workflow transition runtime, bounded online repair traces, and a generated admin UI shell. The core contract remains compiler-first: models may draft SML, but deterministic compiler code emits final source.
+
+This repository is the V1.5.0-dev general-purpose semantic app foundation compiler. It keeps the compiler-first contract while adding typed app planning, domain packs, capability negotiation, multi-domain benchmarks, and gated online drafting:
 
 ```text
 SML parser → SIR builder → symbolic logic → latent resolver → deterministic target pack → generated project → validation/tests/provenance
@@ -146,3 +149,23 @@ V1.3.2 adds `scripts/secret_scan.py` and `scripts/test_v13_e2e.sh`. The scanner 
 ## V1.3.2 version-lock release
 
 V1.3.2 aligns package metadata and runtime metadata, replaces the E2E script with the timestamped log-saving release script, and adds release documentation for capability scope, changelog, and tagging. The version-lock gate is `./scripts/test_v13_e2e.sh` from a clean extracted release root.
+
+
+## V1.5.0-dev Platform Layer
+
+V1.5.0-dev adds five platform capabilities while preserving the V1.3.2 product identity:
+
+- Trust layer: generated app manifest, app contract, eval record, capability report, assumptions, unsupported features, provenance hashes, and release evidence bundle.
+- SaaS primitives: tenant context propagation, RBAC role/permission model, audit event capture, platform routes, and seed/admin CLI scaffold.
+- Workflow runtime: generated workflow metadata and transition endpoint.
+- Online repair loop: bounded repair attempts and `repair_trace.json` output.
+- Admin shell: generated `admin/` frontend scaffold with an OpenAPI-aware API client shell.
+
+Use the V1.5 E2E script for the dev platform layer:
+
+```bash
+chmod +x scripts/test_v15_e2e.sh
+RUN_PIP_AUDIT=0 ./scripts/test_v15_e2e.sh
+```
+
+`pip-audit` remains enabled by default when network/advisory access is available.

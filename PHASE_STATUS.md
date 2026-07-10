@@ -102,3 +102,25 @@ V1.3.2 adds `scripts/secret_scan.py` and `scripts/test_v13_e2e.sh`. The scanner 
 ## V1.3.2 version-lock release
 
 V1.3.2 aligns package metadata and runtime metadata, replaces the E2E script with the timestamped log-saving release script, and adds release documentation for capability scope, changelog, and tagging. The version-lock gate is `./scripts/test_v13_e2e.sh` from a clean extracted release root.
+
+
+## V1.5.0-dev Platform Layer Status
+
+Status: implemented as a development milestone.
+
+| Phase | Status | Notes |
+|---|---:|---|
+| Phase A — Trust layer | Implemented | Generated manifest, app contract, eval run, capability report, assumptions, unsupported features, provenance hashes, evidence bundle, and evidence validator. |
+| Phase B — SaaS primitives | Implemented scaffold | Tenant context, RBAC, audit capture, platform routes, and seed/admin CLI scaffold. Full tenant-filtered repositories are future hardening. |
+| Phase C — Workflow runtime | Implemented scaffold | Generated workflow metadata and transition endpoint. Full business-process orchestration is future hardening. |
+| Phase D — Online repair loop | Implemented | Bounded repair attempts, repair trace persistence, accepted/rejected status. |
+| Phase E — Admin UI generation | Implemented scaffold | Static admin shell and API client scaffold. Production UI build system hardening remains future work. |
+
+Current validation snapshot:
+
+- Framework tests: 25 passed.
+- Framework coverage: 82.94%, threshold 70%.
+- Framework Ruff, format check, mypy, compileall, and Bandit: passed.
+- HR Leave generated app: evidence-check passed; 18 passed, 1 skipped; coverage 89.68%; Ruff, format, mypy, compileall, and Bandit passed when run as independent gates.
+- Inventory generated app: evidence-check passed; 15 passed, 1 skipped; coverage 85.08%; Ruff, format, mypy, compileall, and Bandit passed when run as independent gates.
+- Online mock build: accepted with evidence-check, Ruff, format check, compileall, and Bandit gate results all zero; repair trace written.

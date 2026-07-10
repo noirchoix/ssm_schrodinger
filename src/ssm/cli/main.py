@@ -12,6 +12,7 @@ from ssm.agents.repair_agent import RepairAgent
 from ssm.agents.settings import OnlineAgentSettings
 from ssm.agents.sml_agent import SMLGeneratorAgent
 from ssm.errors import SSMError
+from ssm.evidence import validate_evidence_directory
 from ssm.foundation.builder import OnlineBuildService
 from ssm.foundation.negotiator import CapabilityNegotiator
 from ssm.foundation.planner import AppFoundationPlanner
@@ -87,6 +88,13 @@ def main(argv: list[str] | None = None) -> int:
     online_build_cmd.add_argument("--max-retries", type=int)
     online_build_cmd.add_argument("--max-output-tokens", type=int)
     online_build_cmd.add_argument("--quality-gates", action="store_true")
+    online_build_cmd.add_argument("--repair-attempts", type=int)
+
+    evidence_cmd = sub.add_parser(
+        "evidence-check",
+        help="Validate generated app evidence records and app contract files.",
+    )
+    evidence_cmd.add_argument("app_dir")
 
     repair_cmd = sub.add_parser(
         "repair-missing-schema",
@@ -229,9 +237,14 @@ def main(argv: list[str] | None = None) -> int:
                 prompt=args.prompt,
                 out_dir=args.out,
                 quality_gates=args.quality_gates,
+                repair_attempts=args.repair_attempts,
             )
             print(OnlineBuildService.to_json(build_result))
             return 0
+        if args.command == "evidence-check":
+            evidence_result = validate_evidence_directory(args.app_dir)
+            print(evidence_result.model_dump_json(indent=2))
+            return 0 if evidence_result.ok else 2
         if args.command == "repair-missing-schema":
             patch = RepairAgent().patch_missing_schema(args.schema)
             print(patch.model_dump_json(indent=2))
