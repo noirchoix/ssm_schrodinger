@@ -24,7 +24,7 @@ mkdir -p "$(dirname "$LOG_FILE")"
 : > "$LOG_FILE"
 exec > >(tee -a "$LOG_FILE") 2>&1
 
-trap 'echo ""; echo "V1.5.0-dev E2E FAILED at line $LINENO"; echo "Log saved to: $LOG_FILE"' ERR
+trap 'echo ""; echo "V1.5 COMPATIBILITY E2E FAILED at line $LINENO"; echo "Log saved to: $LOG_FILE"' ERR
 
 if [ ! -f "pyproject.toml" ] || [ ! -d "src/ssm" ]; then
   echo "ERROR: Run from the framework root or scripts/ folder."
@@ -32,7 +32,7 @@ if [ ! -f "pyproject.toml" ] || [ ! -d "src/ssm" ]; then
 fi
 
 echo "============================================================"
-echo "SSM V1.5.0-dev PLATFORM LAYER — END-TO-END TEST"
+echo "SSM V1.5 PLATFORM COMPATIBILITY SUITE — V2 RUNTIME"
 echo "============================================================"
 echo "Project root: $PROJECT_ROOT"
 echo "Output is being saved to: $LOG_FILE"
@@ -54,7 +54,7 @@ python -m pip install -e ".[dev]"
 export PIPAPI_PYTHON_LOCATION="$(python -c 'import sys; print(sys.executable)')"
 python - <<'PY'
 import ssm
-assert ssm.__version__ == "1.5.0.dev0", ssm.__version__
+assert ssm.__version__ == "2.0.0.dev0", ssm.__version__
 print(f"runtime version: {ssm.__version__}")
 PY
 
@@ -188,6 +188,6 @@ echo "=== 7. SECRET CHECK ==="
 python scripts/secret_scan.py --root . --exclude .env.online.local --exclude e2e_logs
 
 echo "============================================================"
-echo "ALL V1.5.0-dev E2E GATES PASSED"
+echo "ALL V1.5 COMPATIBILITY GATES PASSED UNDER V2.0.0-dev"
 echo "Log saved to: $LOG_FILE"
 echo "============================================================"

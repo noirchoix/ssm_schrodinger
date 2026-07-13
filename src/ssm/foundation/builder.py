@@ -10,6 +10,7 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from ssm.agents.online import OnlineDraftService, OnlineDraftValidationError
+from ssm.agents.schemas import SMLDocumentDraft
 from ssm.agents.settings import OnlineAgentSettings
 from ssm.evidence import validate_evidence_directory
 from ssm.foundation.negotiator import CapabilityNegotiator
@@ -51,6 +52,7 @@ class OnlineBuildService:
         out_dir: str | Path,
         quality_gates: bool = False,
         repair_attempts: int | None = None,
+        initial_draft_text: str | None = None,
     ) -> OnlineBuildResult:
         out = Path(out_dir)
         draft_dir = out / "foundation"
@@ -69,9 +71,17 @@ class OnlineBuildService:
                 else f"{prompt}\n\nPrevious build issue:\n{last_issue}\nRepair the SML only."
             )
             try:
-                draft = OnlineDraftService(self.settings, compiler=self.compiler).draft(
-                    repair_prompt
-                )
+                if attempt == 1 and initial_draft_text is not None:
+                    draft = SMLDocumentDraft(
+                        text=initial_draft_text,
+                        assumptions=["Seeded initial draft for repair validation."],
+                        unresolved_questions=[],
+                        provenance=["seed:initial-draft"],
+                    )
+                else:
+                    draft = OnlineDraftService(self.settings, compiler=self.compiler).draft(
+                        repair_prompt
+                    )
             except OnlineDraftValidationError as exc:
                 last_issue = f"Online draft validation failed: {exc}"
                 trace.append(
@@ -241,7 +251,7 @@ class OnlineBuildService:
     ) -> None:
         trace_path.parent.mkdir(parents=True, exist_ok=True)
         payload: dict[str, Any] = {
-            "schema_version": "1.0",
+            "schema_version": "2.0",
             "kind": "OnlineRepairTrace",
             "final_status": result.status,
             "attempts": result.attempts,

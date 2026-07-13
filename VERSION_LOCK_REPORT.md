@@ -1,3 +1,15 @@
+# V2.0.0-dev Version State
+
+- `pyproject.toml`: `2.0.0.dev0`
+- `src/ssm/__init__.py`: `__version__ = "2.0.0.dev0"`
+- Current release gate: `scripts/test_v20_e2e.sh`
+- Local product-platform gate: passed on 2026-07-13
+- Final `2.0.0` lock: pending retained live DeepSeek forced-repair certification
+
+See `docs/V2_0_LOCAL_VALIDATION.md` and `docs/V2_0_ACCEPTANCE_MATRIX.md`. The V1.3.2 report below is retained as historical release evidence.
+
+---
+
 # V1.3.2 Version Lock Report
 
 ## Version state

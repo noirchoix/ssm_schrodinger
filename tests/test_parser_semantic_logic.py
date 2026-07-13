@@ -51,3 +51,96 @@ def test_broad_exception_candidate_rejected() -> None:
     assert ok is False
     assert proof.status == "rejected"
     assert any(str(f) == "Invalid(Candidate:BroadCatchException)" for f in closure.invalid_facts)
+
+
+def _runtime_rule_document(rule_section: str) -> str:
+    return f"""#Project RuleValidation
+name: RuleValidation
+
+#Stack
+backend: FastAPI
+database: InMemory
+auth: JWT
+
+#DataModel LeaveRequest
+fields:
+  id: uuid primary
+  requested_days: int required
+  start_date: string required
+  end_date: string required
+
+{rule_section}
+"""
+
+
+def _semantic_codes(error: SemanticError) -> set[str]:
+    return {diagnostic.code for diagnostic in error.diagnostics}
+
+
+def test_observed_online_runtime_rule_shape_is_rejected_precisely() -> None:
+    text = _runtime_rule_document(
+        """#BusinessRule LeaveRequestDateValidation
+rule: end_date must be after start_date
+severity: error"""
+    )
+
+    with pytest.raises(SemanticError) as exc:
+        SSMCompiler().compile_text(text, "online-rule.sml.md")
+
+    assert {"SEM202", "SEM204", "SEM206"} <= _semantic_codes(exc.value)
+
+
+def test_runtime_rule_entity_must_reference_an_existing_model() -> None:
+    text = _runtime_rule_document(
+        """#BusinessRule LeaveRequestDateValidation
+entity: MissingModel
+rule: end_date > start_date
+on_violation: reject"""
+    )
+
+    with pytest.raises(SemanticError) as exc:
+        SSMCompiler().compile_text(text, "unknown-rule-entity.sml.md")
+
+    assert _semantic_codes(exc.value) == {"SEM203"}
+
+
+def test_runtime_rule_rejects_unsupported_expression_ast() -> None:
+    text = _runtime_rule_document(
+        """#Invariant LeaveRequestHasItems
+entity: LeaveRequest
+rule: len(items) > 0
+on_violation: reject"""
+    )
+
+    with pytest.raises(SemanticError) as exc:
+        SSMCompiler().compile_text(text, "unsupported-rule-expression.sml.md")
+
+    assert _semantic_codes(exc.value) == {"SEM207"}
+    assert "Call" in str(exc.value)
+
+
+def test_runtime_rule_rejects_unsupported_violation_behavior() -> None:
+    text = _runtime_rule_document(
+        """#BusinessRule LeaveRequestWarning
+entity: LeaveRequest
+rule: requested_days > 0
+on_violation: warn"""
+    )
+
+    with pytest.raises(SemanticError) as exc:
+        SSMCompiler().compile_text(text, "unsupported-rule-behavior.sml.md")
+
+    assert _semantic_codes(exc.value) == {"SEM205"}
+
+
+def test_valid_runtime_rule_expression_compiles() -> None:
+    text = _runtime_rule_document(
+        """#BusinessRule LeaveRequestPositiveDuration
+entity: LeaveRequest
+rule: requested_days > 0
+on_violation: reject"""
+    )
+
+    result = SSMCompiler().compile_text(text, "valid-rule.sml.md")
+
+    assert result.success is True

@@ -1,3 +1,19 @@
+# V2.0.0-dev Product-Platform Status
+
+Status: implementation-complete for the deterministic and mock-provider acceptance boundary. Final `2.0.0` promotion remains gated on a retained live DeepSeek forced-repair run.
+
+| Phase | Status | Acceptance evidence |
+|---|---:|---|
+| Phase A — Trust layer | Complete | Evidence schema 2.0, SHA-256 provenance, tamper validation, manifest/app contract/eval/capability/assumption/unsupported/bundle records. |
+| Phase B — SaaS primitives | Complete | Tenant-scoped SQLAlchemy and in-memory repositories, RBAC, persistent audit, tenant seed/admin CLI, enhanced readiness. |
+| Phase C — Workflow runtime | Complete | Persistent state, exact transition edges, optimistic expected-state check, safe business-rule evaluation, action routes, audit integration. |
+| Phase D — Online repair loop | Complete locally | Forced compiler rejection and bounded mock repair are release-gated; live DeepSeek is the final external-provider certification. |
+| Phase E — UI/admin generation | Complete | React/Vite CRUD shell, OpenAPI/contract clients, auth/tenant request wrapper, strict typecheck, production build, generated CI/Make/docs. |
+
+Dedicated release gate: `scripts/test_v20_e2e.sh`.
+
+---
+
 # V1.3.2 Status Update
 
 Status: patched and accepted for the coverage issue exposed by the E2E HR Leave foundation run. The previous failure was not a runtime defect; it was a generated-app coverage gate failure caused by unexercised generated service/repository paths and unused DTO persistence stubs.

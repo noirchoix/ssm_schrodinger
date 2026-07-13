@@ -1,17 +1,18 @@
-# SSM V1.5.0-dev Platform Layer Patch
+# SSM V2.0.0-dev Product-Platform Candidate
 
-Copy these files over a clean locked V1.3.2 tree. Then run:
+This repository is a cumulative project state, not a single-file patch. It includes the locked V1.3.2 compiler foundation, the V1.4 trust/SaaS/workflow/repair layers, the V1.5 admin-client layer, and the V2 product-platform hardening boundary.
+
+Install and run the deterministic/local gate with:
 
 ```bash
 python -m pip install -e ".[dev]"
-python -m pytest -q
-python -m pytest --cov=ssm --cov-report=term-missing -q
-python -m ruff check src tests scripts
-python -m ruff format --check src tests
-python -m mypy src/ssm
-python -m compileall src tests
-python -m bandit -q -r src/ssm scripts/secret_scan.py
-RUN_PIP_AUDIT=0 ./scripts/test_v15_e2e.sh
+RUN_PIP_AUDIT=0 RUN_DEEPSEEK_LIVE=0 ./scripts/test_v20_e2e.sh
 ```
 
-This is a development build, not a stable version lock.
+On a network-capable release host, keep dependency audit enabled. For final external-provider certification:
+
+```bash
+RUN_DEEPSEEK_LIVE=1 ./scripts/test_v20_e2e.sh
+```
+
+Do not change the runtime version from `2.0.0.dev0` to `2.0.0` until the live forced-repair gate passes and its log is retained.

@@ -1,3 +1,11 @@
+# V2.0.0-dev Product-Platform Build Report
+
+The cumulative V2 implementation closes the previously identified hardening gaps: tenant enforcement, RBAC, database-backed audit events, persistent workflow/business-rule runtime, production React/Vite admin generation, schema-2.0 evidence provenance, and forced bounded repair validation.
+
+The dedicated local release gate passed on 2026-07-13. Detailed evidence is recorded in `docs/V2_0_LOCAL_VALIDATION.md`. Historical build reports follow.
+
+---
+
 # V1.3.2 Coverage Hotfix
 
 - Fixed generated app coverage failure for multi-entity foundation apps by no longer emitting unused `app/models/*Create.py` persistence-model stubs for DTO schemas.

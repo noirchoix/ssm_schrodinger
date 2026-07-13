@@ -1,3 +1,17 @@
+# SSM V2.0.0-dev Product Platform Notes
+
+`2.0.0.dev0` is the acceptance branch for the product-platform boundary. It combines the locked general-domain foundation with schema-2.0 release evidence, tenant-enforced SaaS repositories, RBAC, database audit persistence, persistent workflow/business-rule runtime, bounded online repair validation, and a production-buildable React/Vite admin client.
+
+The final `2.0.0` tag remains conditional on a retained `scripts/test_v20_e2e.sh` run with `RUN_DEEPSEEK_LIVE=1`. Local deterministic and mock-provider gates can certify `2.0.0.dev0`; they do not substitute for the external-provider release gate.
+
+See:
+
+- `docs/V2_0_PLATFORM.md`
+- `docs/V2_0_ACCEPTANCE_MATRIX.md`
+- `docs/RELEASE_CHECKLIST_V2_0_DEV.md`
+
+---
+
 # SSM Framework v1.3.2 Release Notes
 
 ## Release status

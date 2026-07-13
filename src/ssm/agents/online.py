@@ -268,12 +268,29 @@ transitions:
     to: approved
     action: approve_leave
 
+Runtime rules must bind to an existing DataModel and use the restricted expression
+syntax implemented by the generated workflow runtime. V2.0 supports hard rejection only.
+
+Valid runtime rule syntax:
+#BusinessRule LeaveRequestDateValidation
+entity: LeaveRequest
+rule: end_date > start_date
+on_violation: reject
+
+Invalid runtime rule syntax:
+#BusinessRule LeaveRequestDateValidation
+rule: end_date must be after start_date
+severity: error
+
 Rules:
 - Model app foundations across domains, not only inventory.
 - Pick capability sections such as generic_crud, workflow_approval, inventory, hr, expense, crm, procurement, ticketing, or school when relevant.
 - For create/update routes, define both Resource and ResourceCreate models.
 - For CRUD requests, include list, create, get-by-id, patch/update, and delete routes.
 - For workflow apps, include #Workflow with states, transitions, and actions.
+- Every executable #BusinessRule or #Invariant must include entity: <existing DataModel>.
+- Runtime rule expressions may use names, attributes, constants, not, and/or, +, -, *, /, and comparisons only.
+- Use on_violation: reject for runtime rules; do not use severity for runtime behavior.
 - For relationship fields, prefer explicit <entity>_id uuid fields plus #Relationship metadata.
 - Relationship source and target values must be existing #DataModel names, not field paths.
 - For manager approval, prefer Employee.manager_id with a self-relationship from Employee to Employee.

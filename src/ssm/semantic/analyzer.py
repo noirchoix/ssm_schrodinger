@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import re
 
 from ssm.errors import CompilerDiagnostic, SemanticError
@@ -40,6 +41,33 @@ _ALLOWED_SECTIONS = {
     "notification",
     "report",
     "integration",
+}
+
+_RUNTIME_RULE_NODE_TYPES = {
+    ast.Expression,
+    ast.Constant,
+    ast.Name,
+    ast.Load,
+    ast.Attribute,
+    ast.UnaryOp,
+    ast.Not,
+    ast.BoolOp,
+    ast.And,
+    ast.Or,
+    ast.BinOp,
+    ast.Add,
+    ast.Sub,
+    ast.Mult,
+    ast.Div,
+    ast.Compare,
+    ast.Eq,
+    ast.NotEq,
+    ast.Lt,
+    ast.LtE,
+    ast.Gt,
+    ast.GtE,
+    ast.In,
+    ast.NotIn,
 }
 
 
@@ -149,6 +177,133 @@ class SemanticAnalyzer:
                             suggested_fix=f"Define #DataModel {value} or change the relationship {label}.",
                         )
                     )
+
+        # Executable workflow rules must be explicitly bound to an existing model and
+        # use the exact expression subset implemented by the generated runtime.
+        for node in nodes:
+            if node.node_type not in {"BusinessRule", "Invariant"}:
+                continue
+            expression = node.attributes.get("rule") or node.attributes.get("expression")
+            if not expression:
+                continue
+
+            entity = str(node.attributes.get("entity", "")).strip()
+            if not entity:
+                diagnostics.append(
+                    CompilerDiagnostic(
+                        code="SEM202",
+                        message=f"Runtime rule {node.name} must declare an entity.",
+                        severity="error",
+                        file=node.source_range.file if node.source_range else None,
+                        start_line=node.source_range.start_line if node.source_range else None,
+                        end_line=node.source_range.end_line if node.source_range else None,
+                        node_id=node.id,
+                        suggested_fix=(
+                            "Add entity: <DataModelName> using an existing #DataModel name."
+                        ),
+                    )
+                )
+            elif entity not in models:
+                diagnostics.append(
+                    CompilerDiagnostic(
+                        code="SEM203",
+                        message=(
+                            f"Runtime rule {node.name} references entity model {entity}, "
+                            "but no matching #DataModel exists."
+                        ),
+                        severity="error",
+                        file=node.source_range.file if node.source_range else None,
+                        start_line=node.source_range.start_line if node.source_range else None,
+                        end_line=node.source_range.end_line if node.source_range else None,
+                        node_id=node.id,
+                        suggested_fix=f"Define #DataModel {entity} or change the rule entity.",
+                    )
+                )
+
+            if "severity" in node.attributes and "on_violation" not in node.attributes:
+                diagnostics.append(
+                    CompilerDiagnostic(
+                        code="SEM204",
+                        message=(
+                            f"Runtime rule {node.name} uses severity, but the workflow runtime "
+                            "requires on_violation."
+                        ),
+                        severity="error",
+                        file=node.source_range.file if node.source_range else None,
+                        start_line=node.source_range.start_line if node.source_range else None,
+                        end_line=node.source_range.end_line if node.source_range else None,
+                        node_id=node.id,
+                        suggested_fix="Replace severity with on_violation: reject.",
+                    )
+                )
+
+            on_violation = str(node.attributes.get("on_violation", "reject")).strip().lower()
+            if on_violation != "reject":
+                diagnostics.append(
+                    CompilerDiagnostic(
+                        code="SEM205",
+                        message=(
+                            f"Runtime rule {node.name} requests on_violation={on_violation}, "
+                            "but V2.0 currently supports reject rules only."
+                        ),
+                        severity="error",
+                        file=node.source_range.file if node.source_range else None,
+                        start_line=node.source_range.start_line if node.source_range else None,
+                        end_line=node.source_range.end_line if node.source_range else None,
+                        node_id=node.id,
+                        suggested_fix=(
+                            "Use on_violation: reject or declare the feature unsupported until "
+                            "warn/audit runtime semantics are implemented."
+                        ),
+                    )
+                )
+
+            try:
+                tree = ast.parse(str(expression), mode="eval")
+            except SyntaxError as exc:
+                diagnostics.append(
+                    CompilerDiagnostic(
+                        code="SEM206",
+                        message=f"Runtime rule {node.name} has invalid expression syntax: {exc.msg}.",
+                        severity="error",
+                        file=node.source_range.file if node.source_range else None,
+                        start_line=node.source_range.start_line if node.source_range else None,
+                        end_line=node.source_range.end_line if node.source_range else None,
+                        node_id=node.id,
+                        suggested_fix=(
+                            "Use a restricted expression such as end_date > start_date or "
+                            "requested_days <= employee.leave_balance."
+                        ),
+                    )
+                )
+                continue
+
+            unsupported = sorted(
+                {
+                    type(item).__name__
+                    for item in ast.walk(tree)
+                    if type(item) not in _RUNTIME_RULE_NODE_TYPES
+                }
+            )
+            if unsupported:
+                diagnostics.append(
+                    CompilerDiagnostic(
+                        code="SEM207",
+                        message=(
+                            f"Runtime rule {node.name} uses unsupported expression syntax: "
+                            f"{', '.join(unsupported)}."
+                        ),
+                        severity="error",
+                        file=node.source_range.file if node.source_range else None,
+                        start_line=node.source_range.start_line if node.source_range else None,
+                        end_line=node.source_range.end_line if node.source_range else None,
+                        node_id=node.id,
+                        suggested_fix=(
+                            "Use names, attributes, constants, boolean operators, arithmetic, "
+                            "and comparisons only."
+                        ),
+                    )
+                )
 
         if diagnostics:
             raise SemanticError(diagnostics)

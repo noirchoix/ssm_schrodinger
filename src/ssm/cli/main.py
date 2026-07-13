@@ -89,6 +89,10 @@ def main(argv: list[str] | None = None) -> int:
     online_build_cmd.add_argument("--max-output-tokens", type=int)
     online_build_cmd.add_argument("--quality-gates", action="store_true")
     online_build_cmd.add_argument("--repair-attempts", type=int)
+    online_build_cmd.add_argument(
+        "--initial-draft",
+        help="Seed attempt one from an SML file, then use the provider for bounded repair.",
+    )
 
     evidence_cmd = sub.add_parser(
         "evidence-check",
@@ -241,6 +245,11 @@ def main(argv: list[str] | None = None) -> int:
                 out_dir=args.out,
                 quality_gates=args.quality_gates,
                 repair_attempts=args.repair_attempts,
+                initial_draft_text=(
+                    Path(args.initial_draft).read_text(encoding="utf-8")
+                    if args.initial_draft
+                    else None
+                ),
             )
             print(OnlineBuildService.to_json(build_result))
             return 0

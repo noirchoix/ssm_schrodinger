@@ -1,5 +1,27 @@
 # Changelog
 
+## v2.0.0-dev — Product-platform acceptance branch
+
+### Added
+
+- Evidence schema 2.0 with SHA-256 provenance for generated files and tamper detection.
+- Automatic tenant fields for every route-owned entity in tenant-enabled applications.
+- Tenant-scoped SQLAlchemy and in-memory CRUD/uniqueness enforcement.
+- JWT role claims and generated RBAC permission checks on protected routes.
+- SQLAlchemy tenant, audit-event, and workflow-state persistence models with Alembic revision `0002_platform_runtime`.
+- CRUD and workflow audit writes, persistent workflow orchestration, exact transition checks, and safe business-rule evaluation.
+- Production-buildable React/Vite admin client with CRUD pages, OpenAPI loader, auth/tenant request wrapper, strict TypeScript, and generated CI/Make build stages.
+- Seeded `online-build --initial-draft` path for deterministic and live-provider repair validation.
+- Dedicated `scripts/test_v20_e2e.sh` product-platform release gate.
+
+### Hardened
+
+- Full tenant isolation across API, service, and repository boundaries.
+- Database-backed audit persistence and tenant-scoped retrieval.
+- Workflow state persistence and optimistic state conflict handling.
+- Generated readiness checks and seed/admin CLI execution tests.
+- Frontend production typecheck/build validation.
+
 ## v1.5.0-dev — Platform layer development build
 
 Release type: development milestone, not locked stable.

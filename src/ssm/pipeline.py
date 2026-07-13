@@ -71,7 +71,8 @@ class SSMCompiler:
         for f in result.files:
             target = out / f.path
             target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_text(f.content, encoding="utf-8")
+            # Preserve the exact bytes used by provenance hashing on every OS.
+            target.write_bytes(f.content.encode("utf-8"))
 
     def _hash_text(self, text: str) -> str:
         return hashlib.sha256(text.encode("utf-8")).hexdigest()

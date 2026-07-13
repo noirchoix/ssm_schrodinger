@@ -14,6 +14,7 @@ from typing import Any
 from ssm import __version__
 from ssm.backends.python_fastapi.platform import (
     evidence_record_files,
+    platform_migration_files,
     platform_source_files,
     platform_test_files,
 )
@@ -55,6 +56,9 @@ class PythonFastAPITarget:
         routes = [self._route_plan(node) for node in graph.by_type("Route")]
         repo_strategy = self._repo_strategy(resolution)
         entity_names = {r.entity for r in routes}
+        tenant_enabled = self._section_enabled(graph, "Tenant")
+        if tenant_enabled:
+            models = self._with_tenant_scoped_entities(models, entity_names)
         self._validate_route_entity_input_schemas(models, routes)
         project_name = self._project_name(graph)
         files: list[GeneratedFile] = []
@@ -90,7 +94,7 @@ class PythonFastAPITarget:
             GeneratedFile(path="docker-compose.yml", content=self._docker_compose(repo_strategy))
         )
         files.append(GeneratedFile(path="load/locustfile.py", content=self._locustfile(routes)))
-        files.extend(platform_source_files(graph))
+        files.extend(platform_source_files(graph, repo_strategy))
 
         files.append(GeneratedFile(path="app/__init__.py", content=""))
         files.append(
@@ -122,7 +126,10 @@ class PythonFastAPITarget:
             GeneratedFile(path="app/schemas/__init__.py", content=self._schema_init(models))
         )
         files.append(
-            GeneratedFile(path="app/models/__init__.py", content=self._models_init(entity_names))
+            GeneratedFile(
+                path="app/models/__init__.py",
+                content=self._models_init(entity_names if repo_strategy == "sqlalchemy" else set()),
+            )
         )
         files.append(GeneratedFile(path="app/services/__init__.py", content=""))
         files.append(GeneratedFile(path="app/repositories/__init__.py", content=""))
@@ -137,6 +144,7 @@ class PythonFastAPITarget:
                 )
             )
             files.extend(self._alembic_files(models, entity_names))
+            files.extend(platform_migration_files(graph, repo_strategy))
 
         for model_name in sorted(models):
             model = models[model_name]
@@ -148,21 +156,13 @@ class PythonFastAPITarget:
             # DTO/input schemas such as ProductCreate or LeaveRequestCreate are generated
             # under app/schemas only; emitting unused app/models/*_create.py files makes
             # generated apps look larger than they are and unfairly depresses coverage.
-            if model_name in entity_names:
-                if repo_strategy == "sqlalchemy":
-                    files.append(
-                        GeneratedFile(
-                            path=f"app/models/{module}.py",
-                            content=self._sqlalchemy_model_file(model),
-                        )
+            if model_name in entity_names and repo_strategy == "sqlalchemy":
+                files.append(
+                    GeneratedFile(
+                        path=f"app/models/{module}.py",
+                        content=self._sqlalchemy_model_file(model),
                     )
-                else:
-                    files.append(
-                        GeneratedFile(
-                            path=f"app/models/{module}.py",
-                            content=self._dataclass_model_file(model),
-                        )
-                    )
+                )
             entity_routes = [r for r in routes if r.entity == model_name]
             if entity_routes:
                 files.append(
@@ -216,7 +216,7 @@ class PythonFastAPITarget:
             graph,
             resolution,
             provisional_manifest,
-            base_generated_names,
+            files,
         )
         generated_names = sorted(base_generated_names + [f.path for f in evidence_files])
         manifest = CompileManifest(
@@ -229,7 +229,7 @@ class PythonFastAPITarget:
             selected_candidates={k: v.id for k, v in sorted(resolution.selected.items())},
             proof_count=len(resolution.proof_trace),
         )
-        files.extend(evidence_record_files(graph, resolution, manifest, generated_names))
+        files.extend(evidence_record_files(graph, resolution, manifest, files))
         files.append(
             GeneratedFile(
                 path="sml.manifest.json",
@@ -318,6 +318,45 @@ class PythonFastAPITarget:
     def _project_name(self, graph: SIRGraph) -> str:
         project = next((node for node in graph.by_type("Project")), None)
         return project.name if project else "Generated SML Application"
+
+    def _section_enabled(self, graph: SIRGraph, section_type: str) -> bool:
+        nodes = graph.by_type(section_type)
+        if not nodes:
+            return False
+        value = nodes[0].attributes.get("enabled", True)
+        if isinstance(value, bool):
+            return value
+        return str(value).strip().lower() not in {"false", "0", "no", "off"}
+
+    def _with_tenant_scoped_entities(
+        self,
+        models: dict[str, Any],
+        entity_names: set[str],
+    ) -> dict[str, Any]:
+        scoped = dict(models)
+        for entity_name in sorted(entity_names):
+            model = scoped.get(entity_name)
+            if model is None:
+                continue
+            fields = [dict(field) for field in model.attributes.get("fields", [])]
+            if any(field["name"].lower() == "tenant_id" for field in fields):
+                continue
+            fields.append(
+                {
+                    "name": "tenant_id",
+                    "raw_type": "string",
+                    "python_type": "str",
+                    "required": True,
+                    "primary": False,
+                    "unique": False,
+                    "default": None,
+                    "max_length": 120,
+                }
+            )
+            attributes = dict(model.attributes)
+            attributes["fields"] = fields
+            scoped[entity_name] = model.model_copy(update={"attributes": attributes})
+        return scoped
 
     def _validate_route_entity_input_schemas(
         self,
@@ -646,8 +685,23 @@ class PythonFastAPITarget:
         fields = model.attributes.get("fields", [])
         primary = self._primary_field(fields)
         id_field = primary["name"] if primary else "id"
-        unique_fields = self._unique_fields(fields)
+        unique_fields = [
+            field for field in self._unique_fields(fields) if field["name"].lower() != "tenant_id"
+        ]
         create_name = f"{model.name}Create"
+        tenant_scoped = self._is_tenant_scoped(model)
+        list_params = ["self"]
+        get_params = ["self", "item_id: str"]
+        create_params = ["self", f"payload: {create_name}"]
+        update_params = ["self", "item_id: str", f"payload: {create_name}"]
+        delete_params = ["self", "item_id: str"]
+        if tenant_scoped:
+            list_params.append("tenant_id: str")
+            get_params.append("tenant_id: str")
+            create_params.append("tenant_id: str")
+            update_params.append("tenant_id: str")
+            delete_params.append("tenant_id: str")
+        list_params.extend(["*", "offset: int = 0", "limit: int = 100"])
         lines = [
             "from __future__ import annotations",
             "",
@@ -664,16 +718,35 @@ class PythonFastAPITarget:
             f"        self._items: dict[str, {model.name}] = {{}}",
             "        self._lock = RLock()",
             "",
-            f"    def list(self, *, offset: int = 0, limit: int = 100) -> list[{model.name}]:",
-            "        with self._lock:",
-            "            return list(self._items.values())[offset : offset + limit]",
-            "",
-            f"    def create(self, payload: {create_name}) -> {model.name}:",
-            '        data = payload.model_dump(mode="json")',
+            *self._method_signature_lines("list", list_params, f"list[{model.name}]"),
             "        with self._lock:",
         ]
+        if tenant_scoped:
+            lines.extend(
+                [
+                    "            items = [",
+                    "                item",
+                    "                for item in self._items.values()",
+                    "                if item.tenant_id == tenant_id",
+                    "            ]",
+                    "            return items[offset : offset + limit]",
+                ]
+            )
+        else:
+            lines.append("            return list(self._items.values())[offset : offset + limit]")
+        lines.extend(
+            [
+                "",
+                *self._method_signature_lines("create", create_params, f"{model.name}"),
+                '        data = payload.model_dump(mode="json")',
+            ]
+        )
+        if tenant_scoped:
+            lines.append('        data["tenant_id"] = tenant_id')
+        lines.append("        with self._lock:")
         if unique_fields:
-            lines.append("            self._raise_on_unique_conflict(data)")
+            conflict_args = ", tenant_id=tenant_id" if tenant_scoped else ""
+            lines.append(f"            self._raise_on_unique_conflict(data{conflict_args})")
         lines.extend(
             [
                 f"            item_id = str(data.get({id_field!r}) or uuid4())",
@@ -682,21 +755,42 @@ class PythonFastAPITarget:
                 "            self._items[item_id] = item",
                 "            return item",
                 "",
-                f"    def get(self, item_id: str) -> {model.name}:",
+                *self._method_signature_lines("get", get_params, f"{model.name}"),
                 "        with self._lock:",
-                "            try:",
-                "                return self._items[item_id]",
-                "            except KeyError as exc:",
-                "                raise NotFoundError(item_id) from exc",
-                "",
-                f"    def update(self, item_id: str, payload: {create_name}) -> {model.name}:",
-                '        data = payload.model_dump(mode="json")',
-                "        with self._lock:",
-                "            current = self.get(item_id)",
+                "            item = self._items.get(item_id)",
             ]
         )
+        if tenant_scoped:
+            lines.append("            if item is None or item.tenant_id != tenant_id:")
+        else:
+            lines.append("            if item is None:")
+        lines.extend(
+            [
+                "                raise NotFoundError(item_id)",
+                "            return item",
+                "",
+                *self._method_signature_lines("update", update_params, f"{model.name}"),
+                '        data = payload.model_dump(mode="json")',
+            ]
+        )
+        if tenant_scoped:
+            lines.extend(
+                [
+                    '        data.pop("tenant_id", None)',
+                    "        current = self.get(item_id, tenant_id)",
+                ]
+            )
+        else:
+            lines.append("        current = self.get(item_id)")
+        lines.append("        with self._lock:")
         if unique_fields:
-            lines.append("            self._raise_on_unique_conflict(data, ignore_id=item_id)")
+            if tenant_scoped:
+                lines.append(
+                    "            self._raise_on_unique_conflict("
+                    "data, ignore_id=item_id, tenant_id=tenant_id)"
+                )
+            else:
+                lines.append("            self._raise_on_unique_conflict(data, ignore_id=item_id)")
         lines.extend(
             [
                 "            merged = current.model_dump()",
@@ -706,9 +800,14 @@ class PythonFastAPITarget:
                 "            self._items[item_id] = item",
                 "            return item",
                 "",
-                f"    def delete(self, item_id: str) -> {model.name}:",
+                *self._method_signature_lines("delete", delete_params, f"{model.name}"),
+            ]
+        )
+        get_call = "self.get(item_id, tenant_id)" if tenant_scoped else "self.get(item_id)"
+        lines.extend(
+            [
+                f"        item = {get_call}",
                 "        with self._lock:",
-                "            item = self.get(item_id)",
                 "            del self._items[item_id]",
                 "            return item",
             ]
@@ -722,12 +821,25 @@ class PythonFastAPITarget:
                     "        data: dict[str, object],",
                     "        *,",
                     "        ignore_id: str | None = None,",
+                ]
+            )
+            if tenant_scoped:
+                lines.append('        tenant_id: str = "default",')
+            lines.extend(
+                [
                     "    ) -> None:",
                     "        for existing_id, existing in self._items.items():",
                     "            if ignore_id is not None and existing_id == ignore_id:",
                     "                continue",
                 ]
             )
+            if tenant_scoped:
+                lines.extend(
+                    [
+                        "            if existing.tenant_id != tenant_id:",
+                        "                continue",
+                    ]
+                )
             for field in unique_fields:
                 lines.extend(
                     [
@@ -912,8 +1024,14 @@ class PythonFastAPITarget:
         create_name = f"{model.name}Create"
         fields = model.attributes.get("fields", [])
         validation_lines = self._domain_validation_lines(fields, "payload")
-        unique_fields = self._unique_fields(fields)
+        unique_fields = [
+            field for field in self._unique_fields(fields) if field["name"].lower() != "tenant_id"
+        ]
+        primary = self._primary_field(fields)
+        id_field = primary["name"] if primary else "id"
         tenant_scoped = self._is_tenant_scoped(model)
+        tenant_expr = "tenant_id" if tenant_scoped else repr("default")
+
         if repo_strategy == "sqlalchemy":
             unique_prechecks: list[str] = []
             for field in unique_fields:
@@ -934,18 +1052,17 @@ class PythonFastAPITarget:
                 unique_prechecks.append("pass")
 
             list_params = ["self"]
-            if tenant_scoped:
-                list_params.append("tenant_id: str")
-            list_params.extend(["db: Session", "*", "offset: int = 0", "limit: int = 100"])
             create_params = ["self", f"payload: {create_name}"]
             get_params = ["self", "item_id: str"]
             update_params = ["self", "item_id: str", f"payload: {create_name}"]
             delete_params = ["self", "item_id: str"]
             if tenant_scoped:
+                list_params.append("tenant_id: str")
                 create_params.append("tenant_id: str")
                 get_params.append("tenant_id: str")
                 update_params.append("tenant_id: str")
                 delete_params.append("tenant_id: str")
+            list_params.extend(["db: Session", "*", "offset: int = 0", "limit: int = 100"])
             create_params.append("db: Session")
             get_params.append("db: Session")
             update_params.append("db: Session")
@@ -983,6 +1100,7 @@ class PythonFastAPITarget:
                 "from sqlalchemy.orm import Session",
                 "",
                 "from app.core.errors import DuplicateResourceError, ValidationDomainError",
+                "from app.platform.audit import audit_log",
                 f"from app.repositories.{module}_repository import {model.name}Repository",
                 f"from app.schemas.{module} import {model.name}",
                 f"from app.schemas.{self._module_name(create_name)} import {create_name}",
@@ -1000,6 +1118,15 @@ class PythonFastAPITarget:
                 *(f"        {line}" if line else "" for line in validation_lines),
                 *(f"        {line}" if line else "" for line in unique_prechecks),
                 f"        row = {create_call}",
+                "        audit_log.record(",
+                "            db=db,",
+                f"            event_type={f'{module}.created'!r},",
+                '            actor="service",',
+                f"            tenant_id={tenant_expr},",
+                f"            resource_type={model.name!r},",
+                f"            resource_id=str(getattr(row, {id_field!r})),",
+                '            payload=payload.model_dump(mode="json"),',
+                "        )",
                 "        db.commit()",
                 "        db.refresh(row)",
                 f"        return {model.name}.model_validate(row)",
@@ -1011,6 +1138,15 @@ class PythonFastAPITarget:
                 *self._method_signature_lines("update", update_params, f"{model.name}"),
                 *(f"        {line}" if line else "" for line in validation_lines),
                 f"        row = {update_call}",
+                "        audit_log.record(",
+                "            db=db,",
+                f"            event_type={f'{module}.updated'!r},",
+                '            actor="service",',
+                f"            tenant_id={tenant_expr},",
+                f"            resource_type={model.name!r},",
+                f"            resource_id=str(getattr(row, {id_field!r})),",
+                '            payload=payload.model_dump(mode="json"),',
+                "        )",
                 "        db.commit()",
                 "        db.refresh(row)",
                 f"        return {model.name}.model_validate(row)",
@@ -1018,6 +1154,14 @@ class PythonFastAPITarget:
                 *self._method_signature_lines("delete", delete_params, f"{model.name}"),
                 f"        row = {delete_call}",
                 f"        result = {model.name}.model_validate(row)",
+                "        audit_log.record(",
+                "            db=db,",
+                f"            event_type={f'{module}.deleted'!r},",
+                '            actor="service",',
+                f"            tenant_id={tenant_expr},",
+                f"            resource_type={model.name!r},",
+                f"            resource_id=str(getattr(result, {id_field!r})),",
+                "        )",
                 "        db.commit()",
                 "        return result",
                 "",
@@ -1026,40 +1170,106 @@ class PythonFastAPITarget:
                 f"service = {model.name}Service(repository)",
             ]
             return "\n".join(lines) + "\n"
-        return dedent(f"""
-            from __future__ import annotations
 
-            from app.core.errors import ValidationDomainError
-            from app.repositories.{module}_repository import {model.name}Repository
-            from app.schemas.{module} import {model.name}
-            from app.schemas.{self._module_name(create_name)} import {create_name}
-
-
-            class {model.name}Service:
-                def __init__(self, repository: {model.name}Repository) -> None:
-                    self.repository = repository
-
-                def list(self, *, offset: int = 0, limit: int = 100) -> list[{model.name}]:
-                    return self.repository.list(offset=offset, limit=limit)
-
-                def create(self, payload: {create_name}) -> {model.name}:
-{self._indent_lines(validation_lines, 20)}
-                    return self.repository.create(payload)
-
-                def get(self, item_id: str) -> {model.name}:
-                    return self.repository.get(item_id)
-
-                def update(self, item_id: str, payload: {create_name}) -> {model.name}:
-{self._indent_lines(validation_lines, 20)}
-                    return self.repository.update(item_id, payload)
-
-                def delete(self, item_id: str) -> {model.name}:
-                    return self.repository.delete(item_id)
-
-
-            repository = {model.name}Repository()
-            service = {model.name}Service(repository)
-        """).lstrip()
+        list_params = ["self"]
+        create_params = ["self", f"payload: {create_name}"]
+        get_params = ["self", "item_id: str"]
+        update_params = ["self", "item_id: str", f"payload: {create_name}"]
+        delete_params = ["self", "item_id: str"]
+        if tenant_scoped:
+            list_params.append("tenant_id: str")
+            create_params.append("tenant_id: str")
+            get_params.append("tenant_id: str")
+            update_params.append("tenant_id: str")
+            delete_params.append("tenant_id: str")
+        list_params.extend(["*", "offset: int = 0", "limit: int = 100"])
+        list_call = (
+            "self.repository.list(tenant_id, offset=offset, limit=limit)"
+            if tenant_scoped
+            else "self.repository.list(offset=offset, limit=limit)"
+        )
+        create_call = (
+            "self.repository.create(payload, tenant_id)"
+            if tenant_scoped
+            else "self.repository.create(payload)"
+        )
+        get_call = (
+            "self.repository.get(item_id, tenant_id)"
+            if tenant_scoped
+            else "self.repository.get(item_id)"
+        )
+        update_call = (
+            "self.repository.update(item_id, payload, tenant_id)"
+            if tenant_scoped
+            else "self.repository.update(item_id, payload)"
+        )
+        delete_call = (
+            "self.repository.delete(item_id, tenant_id)"
+            if tenant_scoped
+            else "self.repository.delete(item_id)"
+        )
+        lines = [
+            "from __future__ import annotations",
+            "",
+            "from app.core.errors import ValidationDomainError",
+            "from app.platform.audit import audit_log",
+            f"from app.repositories.{module}_repository import {model.name}Repository",
+            f"from app.schemas.{module} import {model.name}",
+            f"from app.schemas.{self._module_name(create_name)} import {create_name}",
+            "",
+            "",
+            f"class {model.name}Service:",
+            f"    def __init__(self, repository: {model.name}Repository) -> None:",
+            "        self.repository = repository",
+            "",
+            *self._method_signature_lines("list", list_params, f"list[{model.name}]"),
+            f"        return {list_call}",
+            "",
+            *self._method_signature_lines("create", create_params, f"{model.name}"),
+            *(f"        {line}" if line else "" for line in validation_lines),
+            f"        item = {create_call}",
+            "        audit_log.record(",
+            f"            event_type={f'{module}.created'!r},",
+            '            actor="service",',
+            f"            tenant_id={tenant_expr},",
+            f"            resource_type={model.name!r},",
+            f"            resource_id=str(getattr(item, {id_field!r})),",
+            '            payload=payload.model_dump(mode="json"),',
+            "        )",
+            "        return item",
+            "",
+            *self._method_signature_lines("get", get_params, f"{model.name}"),
+            f"        return {get_call}",
+            "",
+            *self._method_signature_lines("update", update_params, f"{model.name}"),
+            *(f"        {line}" if line else "" for line in validation_lines),
+            f"        item = {update_call}",
+            "        audit_log.record(",
+            f"            event_type={f'{module}.updated'!r},",
+            '            actor="service",',
+            f"            tenant_id={tenant_expr},",
+            f"            resource_type={model.name!r},",
+            f"            resource_id=str(getattr(item, {id_field!r})),",
+            '            payload=payload.model_dump(mode="json"),',
+            "        )",
+            "        return item",
+            "",
+            *self._method_signature_lines("delete", delete_params, f"{model.name}"),
+            f"        item = {delete_call}",
+            "        audit_log.record(",
+            f"            event_type={f'{module}.deleted'!r},",
+            '            actor="service",',
+            f"            tenant_id={tenant_expr},",
+            f"            resource_type={model.name!r},",
+            f"            resource_id=str(getattr(item, {id_field!r})),",
+            "        )",
+            "        return item",
+            "",
+            "",
+            f"repository = {model.name}Repository()",
+            f"service = {model.name}Service(repository)",
+        ]
+        return "\n".join(lines) + "\n"
 
     def _domain_validation_lines(
         self, fields: list[dict[str, Any]], payload_name: str
@@ -1080,7 +1290,10 @@ class PythonFastAPITarget:
     def _routes_file(self, model: Any, routes: list[RoutePlan], repo_strategy: str) -> str:
         module = self._module_name(model.name)
         tenant_scoped = self._is_tenant_scoped(model)
-        create_names = sorted({r.body for r in routes if r.body and r.body != model.name})
+        auth_enabled = any(route.auth_required for route in routes)
+        create_names = sorted(
+            {route.body for route in routes if route.body and route.body != model.name}
+        )
 
         lines = [
             "from __future__ import annotations",
@@ -1091,19 +1304,16 @@ class PythonFastAPITarget:
         ]
         if repo_strategy == "sqlalchemy":
             lines.append("from sqlalchemy.orm import Session")
-        lines.extend(
-            [
-                "",
-                "from app.core.security import TokenClaims, get_current_user",
-            ]
-        )
+        lines.extend(["", "from app.core.security import TokenClaims, get_current_user"])
         if repo_strategy == "sqlalchemy":
             lines.append("from app.db.session import get_db")
+        if auth_enabled:
+            lines.append("from app.platform.rbac import authorize")
         if tenant_scoped:
             lines.append("from app.platform.tenancy import TenantContext, get_tenant_context")
         lines.append(f"from app.schemas.{module} import {model.name}")
-        for cname in create_names:
-            lines.append(f"from app.schemas.{self._module_name(cname)} import {cname}")
+        for create_name in create_names:
+            lines.append(f"from app.schemas.{self._module_name(create_name)} import {create_name}")
         lines.append(f"from app.services.{module}_service import service")
         lines.extend(["", f"router = APIRouter(tags={[model.name]!r})"])
         lines.extend(
@@ -1116,111 +1326,111 @@ class PythonFastAPITarget:
             lines.append("DbSession = Annotated[Session, Depends(get_db)]")
         if tenant_scoped:
             lines.append("TenantDep = Annotated[TenantContext, Depends(get_tenant_context)]")
-        if any(r.auth_required for r in routes):
+        if auth_enabled:
             lines.append("CurrentUser = Annotated[TokenClaims, Depends(get_current_user)]")
         lines.append("")
 
-        for r in sorted(routes, key=lambda x: (x.path, x.method, x.name)):
-            path_params = self._path_params(r.path)
-            if r.returns and r.returns_list:
-                response = f"list[{r.returns}]"
-            elif r.returns:
-                response = r.returns
-            elif r.method == "DELETE" and path_params:
+        for route in sorted(routes, key=lambda item: (item.path, item.method, item.name)):
+            path_params = self._path_params(route.path)
+            if route.returns and route.returns_list:
+                response = f"list[{route.returns}]"
+            elif route.returns:
+                response = route.returns
+            elif route.method == "DELETE" and path_params:
                 response = model.name
             else:
                 response = "dict[str, str]"
-            decorator = r.method.lower()
-            if r.method == "POST":
-                lines.extend(
-                    [
-                        f"@router.{decorator}(",
-                        f"    {r.path!r},",
-                        f"    response_model={response},",
-                        "    status_code=status.HTTP_201_CREATED,",
-                        ")",
-                    ]
-                )
-            else:
-                lines.extend(
-                    [
-                        f"@router.{decorator}(",
-                        f"    {r.path!r},",
-                        f"    response_model={response},",
-                        ")",
-                    ]
-                )
-            fn_name = self._module_name(r.name)
+            decorator = route.method.lower()
+            lines.extend([f"@router.{decorator}(", f"    {route.path!r},"])
+            lines.append(f"    response_model={response},")
+            if route.method == "POST":
+                lines.append("    status_code=status.HTTP_201_CREATED,")
+            lines.append(")")
+
             params: list[str] = []
             params.extend(f"{name}: str" for name in path_params)
-            if r.body:
-                params.append(f"payload: {r.body}")
+            if route.body:
+                params.append(f"payload: {route.body}")
             if repo_strategy == "sqlalchemy":
                 params.append("db: DbSession")
             if tenant_scoped:
                 params.append("tenant: TenantDep")
-            if r.auth_required:
+            if route.auth_required:
                 params.append("_current_user: CurrentUser")
-            if r.method == "GET" and r.returns_list:
-                params.append("limit: LimitQuery = 100")
-                params.append("offset: OffsetQuery = 0")
-            lines.append(f"def {fn_name}(")
-            for param in params:
-                lines.append(f"    {param},")
+            if route.method == "GET" and route.returns_list:
+                params.extend(["limit: LimitQuery = 100", "offset: OffsetQuery = 0"])
+            lines.append(f"def {self._module_name(route.name)}(")
+            lines.extend(f"    {param}," for param in params)
             lines.append(") -> Any:")
-            if r.auth_required:
-                lines.append("    _ = _current_user")
-            item_id_expr = path_params[0] if path_params else "''"
-            if r.method == "GET" and r.returns_list:
-                if repo_strategy == "sqlalchemy":
-                    if tenant_scoped:
+            if route.auth_required:
+                permission = "read" if route.method == "GET" else "write"
+                lines.append(
+                    f"    authorize(_current_user.roles, _current_user.scopes, {permission!r})"
+                )
+
+            item_id = path_params[0] if path_params else "''"
+            if route.method == "GET" and route.returns_list:
+                if tenant_scoped:
+                    if repo_strategy == "sqlalchemy":
                         lines.append(
-                            "    return service.list("
-                            "tenant.tenant_id, db, offset=offset, limit=limit)"
+                            "    return service.list(tenant.tenant_id, db, offset=offset, limit=limit)"
                         )
                     else:
-                        lines.append("    return service.list(db, offset=offset, limit=limit)")
+                        lines.append(
+                            "    return service.list(tenant.tenant_id, offset=offset, limit=limit)"
+                        )
+                elif repo_strategy == "sqlalchemy":
+                    lines.append("    return service.list(db, offset=offset, limit=limit)")
                 else:
                     lines.append("    return service.list(offset=offset, limit=limit)")
-            elif r.method == "GET" and path_params:
-                if repo_strategy == "sqlalchemy":
-                    if tenant_scoped:
-                        lines.append(
-                            f"    return service.get({item_id_expr}, tenant.tenant_id, db)"
-                        )
-                    else:
-                        lines.append(f"    return service.get({item_id_expr}, db)")
+            elif route.method == "GET" and path_params:
+                if tenant_scoped:
+                    suffix = (
+                        ", tenant.tenant_id, db"
+                        if repo_strategy == "sqlalchemy"
+                        else ", tenant.tenant_id"
+                    )
+                    lines.append(f"    return service.get({item_id}{suffix})")
+                elif repo_strategy == "sqlalchemy":
+                    lines.append(f"    return service.get({item_id}, db)")
                 else:
-                    lines.append(f"    return service.get({item_id_expr})")
-            elif r.method == "POST" and r.body:
-                if repo_strategy == "sqlalchemy":
-                    if tenant_scoped:
-                        lines.append("    return service.create(payload, tenant.tenant_id, db)")
-                    else:
-                        lines.append("    return service.create(payload, db)")
+                    lines.append(f"    return service.get({item_id})")
+            elif route.method == "POST" and route.body:
+                if tenant_scoped:
+                    suffix = (
+                        ", tenant.tenant_id, db"
+                        if repo_strategy == "sqlalchemy"
+                        else ", tenant.tenant_id"
+                    )
+                    lines.append(f"    return service.create(payload{suffix})")
+                elif repo_strategy == "sqlalchemy":
+                    lines.append("    return service.create(payload, db)")
                 else:
                     lines.append("    return service.create(payload)")
-            elif r.method in {"PATCH", "PUT"} and r.body and path_params:
-                if repo_strategy == "sqlalchemy":
-                    if tenant_scoped:
-                        lines.append(
-                            f"    return service.update({item_id_expr}, payload, "
-                            "tenant.tenant_id, db)"
-                        )
-                    else:
-                        lines.append(f"    return service.update({item_id_expr}, payload, db)")
+            elif route.method in {"PATCH", "PUT"} and route.body and path_params:
+                if tenant_scoped:
+                    suffix = (
+                        ", tenant.tenant_id, db"
+                        if repo_strategy == "sqlalchemy"
+                        else ", tenant.tenant_id"
+                    )
+                    lines.append(f"    return service.update({item_id}, payload{suffix})")
+                elif repo_strategy == "sqlalchemy":
+                    lines.append(f"    return service.update({item_id}, payload, db)")
                 else:
-                    lines.append(f"    return service.update({item_id_expr}, payload)")
-            elif r.method == "DELETE" and path_params:
-                if repo_strategy == "sqlalchemy":
-                    if tenant_scoped:
-                        lines.append(
-                            f"    return service.delete({item_id_expr}, tenant.tenant_id, db)"
-                        )
-                    else:
-                        lines.append(f"    return service.delete({item_id_expr}, db)")
+                    lines.append(f"    return service.update({item_id}, payload)")
+            elif route.method == "DELETE" and path_params:
+                if tenant_scoped:
+                    suffix = (
+                        ", tenant.tenant_id, db"
+                        if repo_strategy == "sqlalchemy"
+                        else ", tenant.tenant_id"
+                    )
+                    lines.append(f"    return service.delete({item_id}{suffix})")
+                elif repo_strategy == "sqlalchemy":
+                    lines.append(f"    return service.delete({item_id}, db)")
                 else:
-                    lines.append(f"    return service.delete({item_id_expr})")
+                    lines.append(f"    return service.delete({item_id})")
             else:
                 lines.append("    return {'detail': 'Route declared but no generator exists yet.'}")
             lines.append("")
@@ -1230,20 +1440,20 @@ class PythonFastAPITarget:
         return re.findall(r"\{([A-Za-z_][A-Za-z0-9_]*)\}", path)
 
     def _main(self, routes: list[RoutePlan], repo_strategy: str, project_name: str) -> str:
-        modules = sorted({self._module_name(r.entity) for r in routes})
+        modules = sorted({self._module_name(route.entity) for route in routes})
         modules.append("platform")
         lines = [
             "from __future__ import annotations",
             "",
             "from collections.abc import AsyncIterator",
             "from contextlib import asynccontextmanager",
+            "from pathlib import Path",
             "",
             "from fastapi import FastAPI, Request, status",
             "from fastapi.responses import JSONResponse",
             "",
         ]
-        for module in modules:
-            lines.append(f"from app.api.routes import {module}")
+        lines.extend(f"from app.api.routes import {module}" for module in modules)
         lines.extend(
             [
                 "from app.core.config import get_settings",
@@ -1258,9 +1468,10 @@ class PythonFastAPITarget:
         )
         if repo_strategy == "sqlalchemy":
             lines.append("from app.db.session import check_database_connection, create_schema")
-        lines.append("from app.middleware.request_id import RequestIDMiddleware, get_request_id")
         lines.extend(
             [
+                "from app.middleware.request_id import RequestIDMiddleware, get_request_id",
+                "from app.platform.readiness import platform_readiness",
                 "",
                 "settings = get_settings()",
                 "configure_logging(settings.log_level)",
@@ -1271,8 +1482,13 @@ class PythonFastAPITarget:
             ]
         )
         if repo_strategy == "sqlalchemy":
-            lines.append("    if settings.create_db_on_startup:")
-            lines.append("        create_schema()")
+            lines.extend(
+                [
+                    "    _ = app",
+                    "    if settings.create_db_on_startup:",
+                    "        create_schema()",
+                ]
+            )
         else:
             lines.append("    _ = app")
         lines.extend(
@@ -1289,8 +1505,7 @@ class PythonFastAPITarget:
                 "",
             ]
         )
-        for module in modules:
-            lines.append(f"app.include_router({module}.router)")
+        lines.extend(f"app.include_router({module}.router)" for module in modules)
         lines.extend(
             [
                 "",
@@ -1309,7 +1524,10 @@ class PythonFastAPITarget:
                 "",
                 "",
                 "@app.exception_handler(DuplicateResourceError)",
-                "async def duplicate_handler(request: Request, exc: DuplicateResourceError) -> JSONResponse:",
+                "async def duplicate_handler(",
+                "    request: Request,",
+                "    exc: DuplicateResourceError,",
+                ") -> JSONResponse:",
                 "    _ = request",
                 "    return JSONResponse(",
                 "        status_code=status.HTTP_409_CONFLICT,",
@@ -1349,17 +1567,19 @@ class PythonFastAPITarget:
                 "",
                 "",
                 "@app.get('/readyz')",
-                "def readyz() -> dict[str, str]:",
+                "def readyz() -> dict[str, object]:",
             ]
         )
         if repo_strategy == "sqlalchemy":
             lines.append("    check_database_connection()")
         lines.extend(
             [
+                "    checks = platform_readiness(Path(__file__).resolve().parents[1])",
                 "    return {",
-                "        'status': 'ready',",
+                "        'status': 'ready' if checks['ready'] else 'not_ready',",
                 "        'app': settings.app_name,",
                 "        'request_id': get_request_id(),",
+                "        'checks': checks,",
                 "    }",
                 "",
             ]
@@ -1484,6 +1704,7 @@ class PythonFastAPITarget:
         ]
         if import_lines:
             lines.extend(import_lines)
+        lines.append("import app.platform.models  # noqa: F401")
         lines.extend(
             [
                 "from app.core.config import get_settings",
@@ -1572,10 +1793,15 @@ class PythonFastAPITarget:
                 class TokenClaims(BaseModel):
                     sub: str = "anonymous"
                     scopes: list[str] = Field(default_factory=list)
+                    roles: list[str] = Field(default_factory=list)
 
 
-                def create_access_token(subject: str, scopes: list[str] | None = None) -> str:
-                    _ = scopes
+                def create_access_token(
+                    subject: str,
+                    scopes: list[str] | None = None,
+                    roles: list[str] | None = None,
+                ) -> str:
+                    _ = scopes, roles
                     return subject
 
 
@@ -1603,6 +1829,7 @@ class PythonFastAPITarget:
             class TokenClaims(BaseModel):
                 sub: str = Field(..., min_length=1)
                 scopes: list[str] = Field(default_factory=list)
+                roles: list[str] = Field(default_factory=list)
                 iss: str | None = None
                 aud: str | None = None
                 exp: int | None = None
@@ -1612,6 +1839,7 @@ class PythonFastAPITarget:
             def create_access_token(
                 subject: str,
                 scopes: Sequence[str] | None = None,
+                roles: Sequence[str] | None = None,
                 expires_delta: timedelta | None = None,
             ) -> str:
                 settings = get_settings()
@@ -1622,6 +1850,7 @@ class PythonFastAPITarget:
                 payload: dict[str, object] = {
                     "sub": subject,
                     "scopes": list(scopes or []),
+                    "roles": list(roles or []),
                     "iss": settings.jwt_issuer,
                     "iat": now,
                     "nbf": now,
@@ -1687,7 +1916,24 @@ class PythonFastAPITarget:
         routes_by_entity: dict[str, list[RoutePlan]] = {}
         for route in routes:
             routes_by_entity.setdefault(route.entity, []).append(route)
+        audit_enabled = self._section_enabled(graph, "Audit")
         first_get = next((r for r in routes if r.method == "GET"), None)
+        first_secured_list = next(
+            (
+                route
+                for route in routes
+                if route.method == "GET" and route.returns_list and route.auth_required
+            ),
+            None,
+        )
+        first_secured_create = next(
+            (
+                route
+                for route in routes
+                if route.method == "POST" and route.body and route.auth_required
+            ),
+            None,
+        )
         first_entity = next(iter(sorted(routes_by_entity)), next(iter(models), "Resource"))
         security_import = "from app.core.security import create_access_token"
         files: dict[str, str] = {}
@@ -1764,6 +2010,8 @@ class PythonFastAPITarget:
                 from fastapi.testclient import TestClient
 
                 from app.main import app
+                from app.platform.audit import audit_log
+                from app.platform.workflow import workflow_runtime
                 {chr(10).join(repository_imports)}
 
                 _REPOSITORIES = {repositories_expr}
@@ -1773,14 +2021,19 @@ class PythonFastAPITarget:
                 def reset_in_memory_repositories():
                     for repository in _REPOSITORIES:
                         repository._items.clear()
+                    audit_log.clear()
+                    workflow_runtime.clear()
                     yield
                     for repository in _REPOSITORIES:
                         repository._items.clear()
+                    audit_log.clear()
+                    workflow_runtime.clear()
 
 
                 @pytest.fixture
-                def client() -> TestClient:
-                    return TestClient(app)
+                def client():
+                    with TestClient(app) as test_client:
+                        yield test_client
             """).lstrip()
 
         payloads: dict[str, dict[str, object]] = {}
@@ -1851,8 +2104,14 @@ class PythonFastAPITarget:
             "def auth_headers(",
             '    subject: str = "test-user",',
             "    tenant_id: str = TEST_TENANT_ID,",
+            "    scopes: list[str] | None = None,",
+            "    roles: list[str] | None = None,",
             ") -> dict[str, str]:",
-            '    token = create_access_token(subject=subject, scopes=["user"])',
+            "    token = create_access_token(",
+            "        subject=subject,",
+            '        scopes=scopes if scopes is not None else ["read", "write", "admin"],',
+            '        roles=roles if roles is not None else ["Admin"],',
+            "    )",
             "    return {",
             '        "Authorization": f"Bearer {token}",',
             '        "x-tenant-id": tenant_id,',
@@ -1905,6 +2164,7 @@ class PythonFastAPITarget:
                 "from __future__ import annotations",
                 "",
                 "from tests.factories import (",
+                "    OTHER_TENANT_ID,",
                 "    auth_headers,",
                 "    duplicate_payload,",
                 "    invalid_payload,",
@@ -1937,6 +2197,23 @@ class PythonFastAPITarget:
                         "def test_authentication_is_required(client) -> None:",
                         f"    response = client.get({first_get.path!r})",
                         "    assert response.status_code == 401",
+                        "",
+                    ]
+                )
+            if first_secured_list is not None and first_secured_create is not None:
+                test_lines.extend(
+                    [
+                        "",
+                        "def test_rbac_allows_read_and_rejects_write_without_permission(client) -> None:",
+                        "    headers = auth_headers(scopes=['read'], roles=['Viewer'])",
+                        f"    listed = client.get({first_secured_list.path!r}, headers=headers)",
+                        "    assert listed.status_code == 200",
+                        "    created = client.post(",
+                        f"        {first_secured_create.path!r},",
+                        f"        json=valid_payload({first_secured_create.entity!r}),",
+                        "        headers=headers,",
+                        "    )",
+                        "    assert created.status_code == 403",
                         "",
                     ]
                 )
@@ -1988,6 +2265,14 @@ class PythonFastAPITarget:
                         "    assert len(response.json()) == 1",
                     ]
                 )
+                if audit_enabled:
+                    test_lines.extend(
+                        [
+                            "    audit = client.get('/platform/audit/events', headers=auth_headers())",
+                            "    assert audit.status_code == 200",
+                            f"    assert any(event['event_type'] == {f'{mod}.created'!r} for event in audit.json())",
+                        ]
+                    )
                 if get_route is not None:
                     test_lines.extend(
                         [
@@ -2004,6 +2289,25 @@ class PythonFastAPITarget:
                             "    assert response.json()['id'] == created['id']",
                         ]
                     )
+                    if self._is_tenant_scoped(models[entity]):
+                        test_lines.extend(
+                            [
+                                "",
+                                f"def test_{mod}_api_enforces_tenant_isolation(client) -> None:",
+                                f"    payload = valid_payload({entity!r})",
+                                "    created = client.post(",
+                                f"        {create_route.path!r},",
+                                "        json=payload,",
+                                "        headers=auth_headers(),",
+                                "    ).json()",
+                                "    other_headers = auth_headers(tenant_id=OTHER_TENANT_ID)",
+                                f"    listed = client.get({list_route.path!r}, headers=other_headers)",
+                                "    assert listed.status_code == 200",
+                                "    assert listed.json() == []",
+                                f"    hidden = client.get(_path({get_route.path!r}, created['id']), headers=other_headers)",
+                                "    assert hidden.status_code == 404",
+                            ]
+                        )
                 if update_route is not None:
                     test_lines.extend(
                         [
@@ -2098,7 +2402,7 @@ class PythonFastAPITarget:
         )
         if repo_strategy == "sqlalchemy":
             files["tests/test_postgres_integration.py"] = self._postgres_integration_test_file()
-        files.update(platform_test_files(graph))
+        files.update(platform_test_files(graph, repo_strategy))
         return files
 
     def _service_contract_test_file(
@@ -2117,27 +2421,25 @@ class PythonFastAPITarget:
                 ),
                 None,
             )
-            if create_route is None or create_route.body is None:
-                continue
-            entities.append((entity, create_route.body))
-
+            if create_route is not None and create_route.body is not None:
+                entities.append((entity, create_route.body))
         if not entities:
             return ""
 
-        imports = [
+        lines = [
             "from __future__ import annotations",
             "",
             "from app.core.errors import NotFoundError",
         ]
         if repo_strategy == "sqlalchemy":
-            imports.append("from app.db.session import SessionLocal")
+            lines.append("from app.db.session import SessionLocal")
         for entity, create_schema in entities:
             module = self._module_name(entity)
-            create_module = self._module_name(create_schema)
-            service_alias = f"{module}_service"
-            imports.append(f"from app.schemas.{create_module} import {create_schema}")
-            imports.append(f"from app.services.{module}_service import service as {service_alias}")
-        imports.extend(
+            lines.append(
+                f"from app.schemas.{self._module_name(create_schema)} import {create_schema}"
+            )
+            lines.append(f"from app.services.{module}_service import service as {module}_service")
+        lines.extend(
             [
                 "from tests.factories import (",
                 "    OTHER_TENANT_ID,",
@@ -2150,147 +2452,126 @@ class PythonFastAPITarget:
             ]
         )
 
-        lines = imports
         for entity, create_schema in entities:
             module = self._module_name(entity)
-            service_alias = f"{module}_service"
-            test_name = f"test_{module}_service_full_crud_contract"
+            service = f"{module}_service"
+            tenant_scoped = self._is_tenant_scoped(models[entity])
+            unique_fields = [
+                field
+                for field in self._unique_fields(models[entity].attributes.get("fields", []))
+                if field["name"].lower() != "tenant_id"
+            ]
+            lines.append(f"def test_{module}_service_full_crud_contract() -> None:")
+            indent = ""
             if repo_strategy == "sqlalchemy":
-                tenant_scoped = self._is_tenant_scoped(models[entity])
-                create_args = (
-                    ["            TEST_TENANT_ID,", "            db,"]
-                    if tenant_scoped
-                    else ["            db,"]
+                lines.extend(["    db = SessionLocal()", "    try:"])
+                indent = "    "
+            prefix = f"    {indent}"
+            lines.append(f"{prefix}create_payload = valid_payload({entity!r})")
+            lines.append(f"{prefix}created = {service}.create(")
+            lines.append(f"{prefix}    {create_schema}(**create_payload),")
+            if tenant_scoped:
+                lines.append(f"{prefix}    TEST_TENANT_ID,")
+            if repo_strategy == "sqlalchemy":
+                lines.append(f"{prefix}    db,")
+            lines.append(f"{prefix})")
+            if tenant_scoped:
+                list_args = (
+                    "TEST_TENANT_ID, db" if repo_strategy == "sqlalchemy" else "TEST_TENANT_ID"
                 )
-                list_call = (
-                    f"{service_alias}.list(TEST_TENANT_ID, db)"
-                    if tenant_scoped
-                    else f"{service_alias}.list(db)"
-                )
-                get_call = (
-                    f"{service_alias}.get(item_id, TEST_TENANT_ID, db)"
-                    if tenant_scoped
-                    else f"{service_alias}.get(item_id, db)"
-                )
-                update_args = (
-                    ["            TEST_TENANT_ID,", "            db,"]
-                    if tenant_scoped
-                    else ["            db,"]
-                )
-                delete_call = (
-                    f"{service_alias}.delete(item_id, TEST_TENANT_ID, db)"
-                    if tenant_scoped
-                    else f"{service_alias}.delete(item_id, db)"
-                )
-                lines.extend(
-                    [
-                        f"def {test_name}() -> None:",
-                        "    db = SessionLocal()",
-                        "    try:",
-                        f"        create_payload = valid_payload({entity!r})",
-                        f"        created = {service_alias}.create(",
-                        f"            {create_schema}(**create_payload),",
-                        *create_args,
-                        "        )",
-                        f"        listed = {list_call}",
-                        "        assert [item.id for item in listed] == [created.id]",
-                        "        item_id = str(created.id)",
-                        f"        fetched = {get_call}",
-                        "        assert fetched.id == created.id",
-                    ]
-                )
-                if tenant_scoped:
-                    lines.extend(
-                        [
-                            f"        assert {service_alias}.list(OTHER_TENANT_ID, db) == []",
-                            "        try:",
-                            f"            {service_alias}.get(item_id, OTHER_TENANT_ID, db)",
-                            "        except NotFoundError:",
-                            "            pass",
-                            "        else:",
-                            "            raise AssertionError('expected cross-tenant lookup to fail')",
-                        ]
-                    )
-                    unique_fields = self._unique_fields(models[entity].attributes.get("fields", []))
-                    if unique_fields:
-                        lines.extend(
-                            [
-                                f"        other_created = {service_alias}.create(",
-                                f"            {create_schema}(**create_payload),",
-                                "            OTHER_TENANT_ID,",
-                                "            db,",
-                                "        )",
-                                "        assert other_created.id != created.id",
-                            ]
-                        )
-                        for field in unique_fields:
-                            lines.append(
-                                f"        assert other_created.{field['name']} == created.{field['name']}"
-                            )
-                        lines.extend(
-                            [
-                                f"        {service_alias}.delete(",
-                                "            str(other_created.id),",
-                                "            OTHER_TENANT_ID,",
-                                "            db,",
-                                "        )",
-                            ]
-                        )
-                lines.extend(
-                    [
-                        f"        update_payload = second_payload({entity!r})",
-                        f"        updated = {service_alias}.update(",
-                        "            item_id,",
-                        f"            {create_schema}(**update_payload),",
-                        *update_args,
-                        "        )",
-                        "        for field, value in update_payload.items():",
-                        "            assert str(getattr(updated, field)) == str(value)",
-                        f"        deleted = {delete_call}",
-                        "        assert deleted.id == created.id",
-                        "        try:",
-                        f"            {get_call}",
-                        "        except NotFoundError:",
-                        "            pass",
-                        "        else:",
-                        "            raise AssertionError('expected deleted entity to be missing')",
-                        "    finally:",
-                        "        db.close()",
-                        "",
-                        "",
-                    ]
+                get_args = (
+                    "item_id, TEST_TENANT_ID, db"
+                    if repo_strategy == "sqlalchemy"
+                    else "item_id, TEST_TENANT_ID"
                 )
             else:
+                list_args = "db" if repo_strategy == "sqlalchemy" else ""
+                get_args = "item_id, db" if repo_strategy == "sqlalchemy" else "item_id"
+            lines.extend(
+                [
+                    f"{prefix}listed = {service}.list({list_args})",
+                    f"{prefix}assert [item.id for item in listed] == [created.id]",
+                    f"{prefix}item_id = str(created.id)",
+                    f"{prefix}fetched = {service}.get({get_args})",
+                    f"{prefix}assert fetched.id == created.id",
+                ]
+            )
+            if tenant_scoped:
+                other_list_args = (
+                    "OTHER_TENANT_ID, db" if repo_strategy == "sqlalchemy" else "OTHER_TENANT_ID"
+                )
+                other_get_args = (
+                    "item_id, OTHER_TENANT_ID, db"
+                    if repo_strategy == "sqlalchemy"
+                    else "item_id, OTHER_TENANT_ID"
+                )
                 lines.extend(
                     [
-                        f"def {test_name}() -> None:",
-                        f"    created = {service_alias}.create(",
-                        f"        {create_schema}(**valid_payload({entity!r})),",
-                        "    )",
-                        f"    listed = {service_alias}.list()",
-                        "    assert [item.id for item in listed] == [created.id]",
-                        "    item_id = str(created.id)",
-                        f"    fetched = {service_alias}.get(item_id)",
-                        "    assert fetched.id == created.id",
-                        f"    update_payload = second_payload({entity!r})",
-                        f"    updated = {service_alias}.update(",
-                        "        item_id,",
-                        f"        {create_schema}(**update_payload),",
-                        "    )",
-                        "    for field, value in update_payload.items():",
-                        "        assert str(getattr(updated, field)) == str(value)",
-                        f"    deleted = {service_alias}.delete(item_id)",
-                        "    assert deleted.id == created.id",
-                        "    try:",
-                        f"        {service_alias}.get(item_id)",
-                        "    except NotFoundError:",
-                        "        pass",
-                        "    else:",
-                        "        raise AssertionError('expected deleted entity to be missing')",
-                        "",
-                        "",
+                        f"{prefix}assert {service}.list({other_list_args}) == []",
+                        f"{prefix}try:",
+                        f"{prefix}    {service}.get({other_get_args})",
+                        f"{prefix}except NotFoundError:",
+                        f"{prefix}    pass",
+                        f"{prefix}else:",
+                        f"{prefix}    raise AssertionError('expected cross-tenant lookup to fail')",
                     ]
                 )
+                if unique_fields:
+                    lines.append(f"{prefix}other_created = {service}.create(")
+                    lines.append(f"{prefix}    {create_schema}(**create_payload),")
+                    lines.append(f"{prefix}    OTHER_TENANT_ID,")
+                    if repo_strategy == "sqlalchemy":
+                        lines.append(f"{prefix}    db,")
+                    lines.append(f"{prefix})")
+                    lines.append(f"{prefix}assert other_created.id != created.id")
+                    for field in unique_fields:
+                        lines.append(
+                            f"{prefix}assert other_created.{field['name']} == created.{field['name']}"
+                        )
+                    other_delete_args = (
+                        "str(other_created.id), OTHER_TENANT_ID, db"
+                        if repo_strategy == "sqlalchemy"
+                        else "str(other_created.id), OTHER_TENANT_ID"
+                    )
+                    lines.append(f"{prefix}{service}.delete({other_delete_args})")
+            lines.append(f"{prefix}update_payload = second_payload({entity!r})")
+            lines.append(f"{prefix}updated = {service}.update(")
+            lines.append(f"{prefix}    item_id,")
+            lines.append(f"{prefix}    {create_schema}(**update_payload),")
+            if tenant_scoped:
+                lines.append(f"{prefix}    TEST_TENANT_ID,")
+            if repo_strategy == "sqlalchemy":
+                lines.append(f"{prefix}    db,")
+            lines.extend(
+                [
+                    f"{prefix})",
+                    f"{prefix}for field, value in update_payload.items():",
+                    f"{prefix}    assert str(getattr(updated, field)) == str(value)",
+                ]
+            )
+            if tenant_scoped:
+                delete_args = (
+                    "item_id, TEST_TENANT_ID, db"
+                    if repo_strategy == "sqlalchemy"
+                    else "item_id, TEST_TENANT_ID"
+                )
+            else:
+                delete_args = "item_id, db" if repo_strategy == "sqlalchemy" else "item_id"
+            lines.extend(
+                [
+                    f"{prefix}deleted = {service}.delete({delete_args})",
+                    f"{prefix}assert deleted.id == created.id",
+                    f"{prefix}try:",
+                    f"{prefix}    {service}.get({get_args})",
+                    f"{prefix}except NotFoundError:",
+                    f"{prefix}    pass",
+                    f"{prefix}else:",
+                    f"{prefix}    raise AssertionError('expected deleted entity to be missing')",
+                ]
+            )
+            if repo_strategy == "sqlalchemy":
+                lines.extend(["    finally:", "        db.close()"])
+            lines.extend(["", ""])
         return "\n".join(lines).rstrip() + "\n"
 
     def _openapi_contract_test_file(
@@ -2511,6 +2792,7 @@ class PythonFastAPITarget:
                 "",
                 "[tool.ruff.lint]",
                 'select = ["E", "F", "I", "B", "UP", "SIM"]',
+                'ignore = ["E501"]',
                 "",
                 "[tool.mypy]",
                 'python_version = "3.11"',
@@ -2662,7 +2944,11 @@ class PythonFastAPITarget:
                 wait_time = between(0.05, 0.2)
 
                 def on_start(self) -> None:
-                    token = create_access_token(subject="load-user", scopes=["user"])
+                    token = create_access_token(
+                        subject="load-user",
+                        scopes=["read", "write"],
+                        roles=["Admin"],
+                    )
                     self.headers = {{"Authorization": f"Bearer {{token}}"}}
 
                 @task(3)
@@ -2681,7 +2967,7 @@ class PythonFastAPITarget:
             else "@echo 'No Alembic migration target for this repository strategy'"
         )
         return dedent(f"""
-            .PHONY: test lint format-check typecheck security quality run migrate coverage contract load-smoke load-test compose-up compose-down postgres-test
+            .PHONY: test lint format-check typecheck security quality run migrate coverage contract load-smoke load-test admin-install admin-typecheck admin-build compose-up compose-down postgres-test
 
             test:
             \tpytest
@@ -2712,7 +2998,16 @@ class PythonFastAPITarget:
             \tpython -m pip install -e '.[load]'
             \tlocust -f load/locustfile.py --headless --users 10 --spawn-rate 5 --run-time 30s --host http://127.0.0.1:8000
 
-            quality: lint format-check typecheck test security
+            admin-install:
+            \tcd admin && npm install --no-audit --no-fund
+
+            admin-typecheck: admin-install
+            \tcd admin && npm run typecheck
+
+            admin-build: admin-install
+            \tcd admin && npm run build
+
+            quality: lint format-check typecheck test admin-build security
 
             run:
             \tuvicorn app.main:app --reload
@@ -2778,6 +3073,9 @@ class PythonFastAPITarget:
                       - uses: actions/setup-python@v5
                         with:
                           python-version: "3.12"
+                      - uses: actions/setup-node@v4
+                        with:
+                          node-version: "22"
                       - run: python -m pip install --upgrade pip
                       - run: pip install -e '.[dev]'
                       - run: ruff check .
@@ -2789,6 +3087,12 @@ class PythonFastAPITarget:
                       - run: pytest
                       - run: bandit -q -r app
                       - run: pip-audit
+                      - run: npm install --no-audit --no-fund
+                        working-directory: admin
+                      - run: npm run typecheck
+                        working-directory: admin
+                      - run: npm run build
+                        working-directory: admin
             """).lstrip()
         return dedent("""
             name: ci
@@ -2807,6 +3111,9 @@ class PythonFastAPITarget:
                   - uses: actions/setup-python@v5
                     with:
                       python-version: "3.12"
+                  - uses: actions/setup-node@v4
+                    with:
+                      node-version: "22"
                   - run: python -m pip install --upgrade pip
                   - run: pip install -e '.[dev]'
                   - run: ruff check .
@@ -2815,37 +3122,41 @@ class PythonFastAPITarget:
                   - run: pytest
                   - run: bandit -q -r app
                   - run: pip-audit
+                  - run: npm install --no-audit --no-fund
+                    working-directory: admin
+                  - run: npm run typecheck
+                    working-directory: admin
+                  - run: npm run build
+                    working-directory: admin
         """).lstrip()
 
     def _readme(self, graph: SIRGraph, repo_strategy: str) -> str:
-        project = next((n for n in graph.by_type("Project")), None)
+        project = next((node for node in graph.by_type("Project")), None)
         name = project.name if project else "Generated SML Application"
         db_note = (
-            "This build uses SQLAlchemy with request-scoped session injection, Alembic migrations, and a PostgreSQL docker-compose profile."
+            "This build uses SQLAlchemy with request-scoped sessions, tenant-scoped repositories, platform persistence, Alembic migrations, and PostgreSQL deployment support."
             if repo_strategy == "sqlalchemy"
-            else "This build uses an in-memory repository target for local/compiler validation."
+            else "This build uses tenant-aware in-memory repositories for local/compiler validation."
         )
         return dedent(f"""
             # {name}
 
-            Generated by Semantic Software Markup Compiler.
+            Generated by Semantic Software Markup Compiler V2.0.
 
             {db_note}
 
-            ## Production-oriented features
+            ## Platform capabilities
 
-            - Layered route/service/repository design.
-            - Pydantic settings via environment variables.
-            - JWT bearer-token validation with PyJWT.
-            - Request IDs and structured error payloads.
-            - Centralized domain exception handlers.
-            - Deterministic tests using real FastAPI/TestClient behavior.
-            - OpenAPI contract tests and coverage thresholds.
-            - SQLite smoke tests plus PostgreSQL integration path for SQLAlchemy builds.
-            - Ruff, mypy, pytest, Bandit, pip-audit, Docker, CI, and pre-commit scaffolding.
-            - Optional Locust load-test scaffold and deterministic load-smoke test.
+            - Layered FastAPI route/service/repository generation.
+            - Tenant propagation and tenant-scoped CRUD enforcement.
+            - JWT authentication with generated RBAC permission checks.
+            - Database-backed audit events for SQLAlchemy builds.
+            - Persistent workflow state, exact transition enforcement, and business-rule evaluation.
+            - Generated evidence records with SHA-256 provenance for emitted files.
+            - Generated React/Vite admin application with CRUD pages, OpenAPI client, bearer-token support, and tenant headers.
+            - Ruff, mypy, pytest, coverage, Bandit, pip-audit, Alembic, Docker, CI, and load-smoke scaffolding.
 
-            ## Run locally
+            ## Backend
 
             ```bash
             pip install -e '.[dev]'
@@ -2854,7 +3165,25 @@ class PythonFastAPITarget:
             uvicorn app.main:app --reload
             ```
 
-            ## Test
+            Seed the initial tenant/admin token where applicable:
+
+            ```bash
+            python -m app.cli.seed_admin
+            ```
+
+            ## Admin frontend
+
+            ```bash
+            cd admin
+            npm install --no-audit --no-fund
+            npm run typecheck
+            npm run build
+            npm run dev
+            ```
+
+            The generated settings panel stores the API URL, bearer token, and tenant ID locally.
+
+            ## Full quality gate
 
             ```bash
             make quality
@@ -2951,6 +3280,7 @@ class PythonFastAPITarget:
             from app.core.config import get_settings
             from app.db.base import Base
             from app.models import *  # noqa: F403,F401
+            from app.platform import models as platform_models  # noqa: F401
 
             config = context.config
             if config.config_file_name is not None:

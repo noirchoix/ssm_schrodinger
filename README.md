@@ -1,3 +1,25 @@
+# Semantic Software Markup Compiler — V2.0.0-dev Product Platform
+
+SSM V2.0 is the product-platform development line built on the locked V1.3.2 general-domain foundation. It generates deterministic FastAPI backends, tenant/RBAC/audit/workflow runtime primitives, provenance-backed release evidence, and production-buildable React/Vite admin clients. Online models remain constrained to SML drafting and repair; compiler code emits final source.
+
+## V2.0 release gate
+
+```bash
+./scripts/test_v20_e2e.sh
+```
+
+Final live-provider certification:
+
+```bash
+RUN_DEEPSEEK_LIVE=1 ./scripts/test_v20_e2e.sh
+```
+
+See `docs/V2_0_PLATFORM.md`, `docs/V2_0_ACCEPTANCE_MATRIX.md`, and `docs/V2_0_LOCAL_VALIDATION.md` for the product boundary, criterion-by-criterion evidence, and latest local gate record.
+
+---
+
+## Historical V1.5 development documentation
+
 # Semantic Software Markup Compiler — V1.5.0-dev Platform Layer
 
 

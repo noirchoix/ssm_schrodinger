@@ -7,6 +7,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+from ssm.agents import online as online_agent
 from ssm.pipeline import SSMCompiler
 
 
@@ -73,6 +74,85 @@ def test_generated_inventory_includes_v11_hardening_artifacts(tmp_path: Path) ->
     assert "load/locustfile.py" in paths
     pyproject = next(file.content for file in result.files if file.path == "pyproject.toml")
     assert "--cov-fail-under=80" in pyproject
+
+
+def test_generated_project_uses_formatter_owned_line_length_policy() -> None:
+    result = SSMCompiler().compile_file("examples/hr_leave_api/project.sml.md")
+    pyproject = next(file.content for file in result.files if file.path == "pyproject.toml")
+
+    assert "[tool.ruff.lint]" in pyproject
+    assert 'ignore = ["E501"]' in pyproject
+
+
+def _workflow_rule_project(rule_entity: str) -> str:
+    return f"""#Project WorkflowRuleTest
+name: WorkflowRuleTest
+
+#Stack
+backend: FastAPI
+database: InMemory
+auth: JWT
+
+#DataModel LeaveRequest
+fields:
+  id: uuid primary
+  requested_days: int required
+
+#DataModel Tenant
+fields:
+  id: uuid primary
+  active: bool required
+
+#Workflow LeaveApproval
+entity: LeaveRequest
+states:
+  - pending
+  - approved
+transitions:
+  - pending -> approved
+actions:
+  - approve_leave
+
+#BusinessRule PositiveValue
+entity: {rule_entity}
+rule: requested_days > 0
+on_violation: reject
+"""
+
+
+def _generated_platform_test(sml: str) -> str:
+    result = SSMCompiler().compile_text(sml, "workflow-rule-test.sml.md")
+    return next(
+        file.content for file in result.files if file.path == "tests/test_platform_primitives.py"
+    )
+
+
+def test_unrelated_business_rule_does_not_activate_selected_workflow_assertions() -> None:
+    generated_test = _generated_platform_test(_workflow_rule_project("Tenant"))
+
+    assert "PositiveValue" not in generated_test
+    assert 'assert payload["rules"] == []' in generated_test
+    assert 'assert payload["allowed"] is True' in generated_test
+
+
+def test_applicable_business_rule_generates_result_consistency_assertions() -> None:
+    generated_test = _generated_platform_test(_workflow_rule_project("LeaveRequest"))
+
+    assert 'assert sorted(item["name"] for item in payload["rules"]) ==' in generated_test
+    assert '== ["PositiveValue"]' in generated_test
+    assert 'expected_allowed = all(item["passed"] for item in payload["rules"])' in generated_test
+    assert 'assert payload["allowed"] is expected_allowed' in generated_test
+    assert '"accepted" if expected_allowed else "business_rule_rejected"' in generated_test
+
+
+def test_online_prompt_defines_executable_runtime_rule_contract() -> None:
+    prompt = online_agent._SYSTEM_PROMPT
+
+    assert "#BusinessRule LeaveRequestDateValidation" in prompt
+    assert "entity: LeaveRequest" in prompt
+    assert "rule: end_date > start_date" in prompt
+    assert "on_violation: reject" in prompt
+    assert "do not use severity for runtime behavior" in prompt
 
 
 def test_cli_draft_and_repair_commands(tmp_path: Path) -> None:

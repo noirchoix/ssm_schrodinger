@@ -1,6 +1,6 @@
-"""Semantic Software Markup Compiler V1.5.0-dev platform layer."""
+"""Semantic Software Markup Compiler V2.0 product-platform development release."""
 
-__version__ = "1.5.0.dev0"
+__version__ = "2.0.0.dev0"
 
 from .pipeline import CompileOptions, SSMCompiler
 
