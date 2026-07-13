@@ -17,6 +17,7 @@ from ssm.backends.python_fastapi.platform import (
     platform_source_files,
     platform_test_files,
 )
+from ssm.errors import CompilerDiagnostic, SemanticError
 from ssm.models import CompileManifest, GeneratedFile, ResolutionResult, SIRGraph
 from ssm.semantic.field_parser import normalize_schema_name, schema_is_list
 
@@ -54,16 +55,21 @@ class PythonFastAPITarget:
         routes = [self._route_plan(node) for node in graph.by_type("Route")]
         repo_strategy = self._repo_strategy(resolution)
         entity_names = {r.entity for r in routes}
+        self._validate_route_entity_input_schemas(models, routes)
         project_name = self._project_name(graph)
         files: list[GeneratedFile] = []
 
         files.append(
-            GeneratedFile(path="pyproject.toml", content=self._pyproject(resolution, repo_strategy))
+            GeneratedFile(
+                path="pyproject.toml",
+                content=self._pyproject(resolution, repo_strategy),
+            )
         )
         files.append(GeneratedFile(path="README.md", content=self._readme(graph, repo_strategy)))
         files.append(
             GeneratedFile(
-                path="docs/domain_foundation.md", content=self._domain_foundation_doc(graph)
+                path="docs/domain_foundation.md",
+                content=self._domain_foundation_doc(graph),
             )
         )
         files.append(
@@ -75,7 +81,10 @@ class PythonFastAPITarget:
         files.append(GeneratedFile(path="Makefile", content=self._makefile(repo_strategy)))
         files.append(GeneratedFile(path=".pre-commit-config.yaml", content=self._pre_commit()))
         files.append(
-            GeneratedFile(path=".github/workflows/ci.yml", content=self._ci_workflow(repo_strategy))
+            GeneratedFile(
+                path=".github/workflows/ci.yml",
+                content=self._ci_workflow(repo_strategy),
+            )
         )
         files.append(
             GeneratedFile(path="docker-compose.yml", content=self._docker_compose(repo_strategy))
@@ -86,7 +95,8 @@ class PythonFastAPITarget:
         files.append(GeneratedFile(path="app/__init__.py", content=""))
         files.append(
             GeneratedFile(
-                path="app/main.py", content=self._main(routes, repo_strategy, project_name)
+                path="app/main.py",
+                content=self._main(routes, repo_strategy, project_name),
             )
         )
         files.append(GeneratedFile(path="app/core/__init__.py", content=""))
@@ -102,7 +112,8 @@ class PythonFastAPITarget:
         files.append(GeneratedFile(path="app/middleware/__init__.py", content=""))
         files.append(
             GeneratedFile(
-                path="app/middleware/request_id.py", content=self._request_id_middleware()
+                path="app/middleware/request_id.py",
+                content=self._request_id_middleware(),
             )
         )
         files.append(GeneratedFile(path="app/api/__init__.py", content=""))
@@ -121,7 +132,8 @@ class PythonFastAPITarget:
             files.append(GeneratedFile(path="app/db/base.py", content=self._db_base()))
             files.append(
                 GeneratedFile(
-                    path="app/db/session.py", content=self._db_session(sorted(entity_names))
+                    path="app/db/session.py",
+                    content=self._db_session(sorted(entity_names)),
                 )
             )
             files.extend(self._alembic_files(models, entity_names))
@@ -220,7 +232,8 @@ class PythonFastAPITarget:
         files.extend(evidence_record_files(graph, resolution, manifest, generated_names))
         files.append(
             GeneratedFile(
-                path="sml.manifest.json", content=manifest.model_dump_json(indent=2) + "\n"
+                path="sml.manifest.json",
+                content=manifest.model_dump_json(indent=2) + "\n",
             )
         )
         return sorted(files, key=lambda f: f.path), manifest
@@ -305,6 +318,40 @@ class PythonFastAPITarget:
     def _project_name(self, graph: SIRGraph) -> str:
         project = next((node for node in graph.by_type("Project")), None)
         return project.name if project else "Generated SML Application"
+
+    def _validate_route_entity_input_schemas(
+        self,
+        models: dict[str, Any],
+        routes: list[RoutePlan],
+    ) -> None:
+        """Reject target inputs that would emit imports for absent create schemas."""
+        entity_routes: dict[str, RoutePlan] = {}
+        for route in routes:
+            entity_routes.setdefault(route.entity, route)
+
+        diagnostics: list[CompilerDiagnostic] = []
+        for entity in sorted(entity_routes):
+            create_schema = f"{entity}Create"
+            if entity not in models or create_schema in models:
+                continue
+            diagnostics.append(
+                CompilerDiagnostic(
+                    code="TGT201",
+                    message=(
+                        "Python FastAPI target requires "
+                        f"#DataModel {create_schema} for route-owned entity {entity}; "
+                        "the generated repository and service CRUD contracts import that schema."
+                    ),
+                    severity="error",
+                    suggested_fix=(
+                        f"Define #DataModel {create_schema} with client-writable fields for "
+                        f"{entity}; omit server-managed fields such as id, tenant_id, and timestamps."
+                    ),
+                )
+            )
+
+        if diagnostics:
+            raise SemanticError(diagnostics)
 
     def _route_plan(self, node: Any) -> RoutePlan:
         method = str(node.attributes.get("method", "GET")).upper()
@@ -438,7 +485,10 @@ class PythonFastAPITarget:
 
     def _dataclass_model_file(self, model: Any) -> str:
         fields = model.attributes.get("fields", [])
-        imports = {"from __future__ import annotations", "from dataclasses import dataclass"}
+        imports = {
+            "from __future__ import annotations",
+            "from dataclasses import dataclass",
+        }
         if any(f["python_type"] == "UUID" for f in fields):
             imports.add("from uuid import UUID")
         if any(f["python_type"] == "datetime" for f in fields):
@@ -458,6 +508,10 @@ class PythonFastAPITarget:
 
     def _sqlalchemy_model_file(self, model: Any) -> str:
         fields = model.attributes.get("fields", [])
+        tenant_scoped = self._is_tenant_scoped(model)
+        tenant_unique_fields = [
+            field for field in self._unique_fields(fields) if field["name"].lower() != "tenant_id"
+        ]
         stdlib_imports = ["from uuid import uuid4"]
         if any(f["python_type"] == "datetime" for f in fields):
             stdlib_imports.append("from datetime import datetime")
@@ -465,6 +519,8 @@ class PythonFastAPITarget:
             stdlib_imports.append("from datetime import date")
 
         sqlalchemy_imports = {self._sa_type_name(f) for f in fields}
+        if tenant_scoped and tenant_unique_fields:
+            sqlalchemy_imports.add("UniqueConstraint")
         lines = ["from __future__ import annotations", ""]
         lines.extend(sorted(stdlib_imports))
         lines.append("")
@@ -474,9 +530,19 @@ class PythonFastAPITarget:
         lines.append("")
         lines.append("from app.db.base import Base")
         lines.extend(["", "", f"class {model.name}Record(Base):"])
-        lines.append(f"    __tablename__ = {self._table_name(model.name)!r}")
+        table = self._table_name(model.name)
+        lines.append(f"    __tablename__ = {table!r}")
+        if tenant_scoped and tenant_unique_fields:
+            lines.append("    __table_args__ = (")
+            for field in tenant_unique_fields:
+                constraint_name = f"uq_{table}_tenant_id_{field['name']}"
+                lines.append(
+                    "        UniqueConstraint("
+                    f"'tenant_id', {field['name']!r}, name={constraint_name!r}),"
+                )
+            lines.append("    )")
         for f in fields:
-            lines.append(f"    {self._sa_field_line(f)}")
+            lines.append(f"    {self._sa_field_line(f, tenant_scoped=tenant_scoped)}")
         return "\n".join(lines) + "\n"
 
     def _table_name(self, model_name: str) -> str:
@@ -499,7 +565,12 @@ class PythonFastAPITarget:
             return "Date"
         return "String"
 
-    def _sa_field_line(self, f: dict[str, Any]) -> str:
+    def _sa_field_line(
+        self,
+        f: dict[str, Any],
+        *,
+        tenant_scoped: bool = False,
+    ) -> str:
         py_type = "str" if f["python_type"] == "UUID" else f["python_type"]
         col_type = self._sa_type_name(f)
         if col_type == "String":
@@ -512,7 +583,7 @@ class PythonFastAPITarget:
         args = [type_expr]
         if f.get("primary"):
             args.append("primary_key=True")
-        if f.get("unique"):
+        if f.get("unique") and not tenant_scoped:
             args.append("unique=True")
             args.append("index=True")
         args.append(f"nullable={not bool(f.get('required') or f.get('primary'))}")
@@ -520,8 +591,9 @@ class PythonFastAPITarget:
             args.append("default=lambda: str(uuid4())")
         elif f.get("default") is not None:
             args.append(f"default={self._literal(f['default'], f['python_type'])}")
-        if len(", ".join(args)) <= 72:
-            return f"{f['name']}: Mapped[{py_type}] = mapped_column({', '.join(args)})"
+        one_line = f"{f['name']}: Mapped[{py_type}] = mapped_column({', '.join(args)})"
+        if len(one_line) + 4 <= 100:
+            return one_line
         formatted_args = ",\n        ".join(args)
         return f"{f['name']}: Mapped[{py_type}] = mapped_column(\n        {formatted_args}\n    )"
 
@@ -535,6 +607,30 @@ class PythonFastAPITarget:
 
     def _unique_fields(self, fields: list[dict[str, Any]]) -> list[dict[str, Any]]:
         return [f for f in fields if f.get("unique")]
+
+    def _tenant_field(self, fields: list[dict[str, Any]]) -> dict[str, Any] | None:
+        return next(
+            (field for field in fields if field["name"].lower() == "tenant_id"),
+            None,
+        )
+
+    def _is_tenant_scoped(self, model: Any) -> bool:
+        return self._tenant_field(model.attributes.get("fields", [])) is not None
+
+    def _method_signature_lines(
+        self,
+        name: str,
+        params: list[str],
+        return_type: str,
+    ) -> list[str]:
+        one_line = f"    def {name}({', '.join(params)}) -> {return_type}:"
+        if len(one_line) <= 100:
+            return [one_line]
+        return [
+            f"    def {name}(",
+            *(f"        {param}," for param in params),
+            f"    ) -> {return_type}:",
+        ]
 
     def _is_non_negative_field(self, f: dict[str, Any]) -> bool:
         return f["python_type"] in {"int", "float"} and f["name"].lower() in {
@@ -644,8 +740,18 @@ class PythonFastAPITarget:
     def _sqlalchemy_repository_file(self, model: Any) -> str:
         module = self._module_name(model.name)
         create_name = f"{model.name}Create"
+        tenant_scoped = self._is_tenant_scoped(model)
+        list_params = ["self", "db: Session"]
+        if tenant_scoped:
+            list_params.append("tenant_id: str")
+        list_params.extend(["*", "offset: int = 0", "limit: int = 100"])
+        get_params = ["self", "db: Session", "item_id: str"]
+        if tenant_scoped:
+            get_params.append("tenant_id: str")
         lines = [
             "from __future__ import annotations",
+            "",
+            "from uuid import UUID",
             "",
             "from sqlalchemy import select",
             "from sqlalchemy.exc import IntegrityError",
@@ -657,30 +763,97 @@ class PythonFastAPITarget:
             "",
             "",
             f"class {model.name}Repository:",
-            f"    def list(self, db: Session, *, offset: int = 0, limit: int = 100) -> list[{model.name}Record]:",
-            f"        stmt = select({model.name}Record).offset(offset).limit(limit)",
-            "        return list(db.execute(stmt).scalars().all())",
-            "",
-            f"    def get(self, db: Session, item_id: str) -> {model.name}Record:",
-            f"        row = db.get({model.name}Record, item_id)",
-            "        if row is None:",
-            "            raise NotFoundError(item_id)",
-            "        return row",
+            *self._method_signature_lines("list", list_params, f"list[{model.name}Record]"),
         ]
+        if tenant_scoped:
+            lines.extend(
+                [
+                    f"        stmt = select({model.name}Record).where(",
+                    f"            {model.name}Record.tenant_id == tenant_id",
+                    "        ).offset(offset).limit(limit)",
+                ]
+            )
+        else:
+            lines.append(f"        stmt = select({model.name}Record).offset(offset).limit(limit)")
+        lines.extend(
+            [
+                "        return list(db.execute(stmt).scalars().all())",
+                "",
+                *self._method_signature_lines("get", get_params, f"{model.name}Record"),
+            ]
+        )
+        if tenant_scoped:
+            lines.extend(
+                [
+                    f"        stmt = select({model.name}Record).where(",
+                    f"            {model.name}Record.id == item_id,",
+                    f"            {model.name}Record.tenant_id == tenant_id,",
+                    "        ).limit(1)",
+                    "        row = db.execute(stmt).scalar_one_or_none()",
+                ]
+            )
+        else:
+            lines.append(f"        row = db.get({model.name}Record, item_id)")
+        lines.extend(
+            [
+                "        if row is None:",
+                "            raise NotFoundError(item_id)",
+                "        return row",
+            ]
+        )
         for field in self._unique_fields(model.attributes.get("fields", [])):
+            lookup_params = ["self", "db: Session", "value: str"]
+            if tenant_scoped:
+                lookup_params.append("tenant_id: str")
             lines.extend(
                 [
                     "",
-                    f"    def get_by_{field['name']}(self, db: Session, value: str) -> {model.name}Record | None:",
-                    f"        stmt = select({model.name}Record).where({model.name}Record.{field['name']} == value).limit(1)",
+                    *self._method_signature_lines(
+                        f"get_by_{field['name']}",
+                        lookup_params,
+                        f"{model.name}Record | None",
+                    ),
+                    f"        stmt = select({model.name}Record).where(",
+                    f"            {model.name}Record.{field['name']} == value,",
+                ]
+            )
+            if tenant_scoped:
+                lines.append(f"            {model.name}Record.tenant_id == tenant_id,")
+            lines.extend(
+                [
+                    "        ).limit(1)",
                     "        return db.execute(stmt).scalar_one_or_none()",
                 ]
             )
+
+        create_params = ["self", "db: Session", f"payload: {create_name}"]
+        update_params = [
+            "self",
+            "db: Session",
+            "item_id: str",
+            f"payload: {create_name}",
+        ]
+        delete_params = ["self", "db: Session", "item_id: str"]
+        if tenant_scoped:
+            create_params.append("tenant_id: str")
+            update_params.append("tenant_id: str")
+            delete_params.append("tenant_id: str")
         lines.extend(
             [
                 "",
-                f"    def create(self, db: Session, payload: {create_name}) -> {model.name}Record:",
-                f'        row = {model.name}Record(**payload.model_dump(mode="json"))',
+                *self._method_signature_lines("create", create_params, f"{model.name}Record"),
+                '        values = payload.model_dump(mode="python")',
+                "        values = {",
+                "            field: str(value) if isinstance(value, UUID) else value",
+                "            for field, value in values.items()",
+                "        }",
+            ]
+        )
+        if tenant_scoped:
+            lines.append('        values["tenant_id"] = tenant_id')
+        lines.extend(
+            [
+                f"        row = {model.name}Record(**values)",
                 "        db.add(row)",
                 "        try:",
                 "            db.flush()",
@@ -689,9 +862,27 @@ class PythonFastAPITarget:
                 '            raise DuplicateResourceError("unique", "conflict") from exc',
                 "        return row",
                 "",
-                f"    def update(self, db: Session, item_id: str, payload: {create_name}) -> {model.name}Record:",
-                "        row = self.get(db, item_id)",
-                '        for field, value in payload.model_dump(mode="json").items():',
+                *self._method_signature_lines("update", update_params, f"{model.name}Record"),
+            ]
+        )
+        if tenant_scoped:
+            lines.append("        row = self.get(db, item_id, tenant_id)")
+        else:
+            lines.append("        row = self.get(db, item_id)")
+        lines.extend(
+            [
+                '        values = payload.model_dump(mode="python")',
+                "        values = {",
+                "            field: str(value) if isinstance(value, UUID) else value",
+                "            for field, value in values.items()",
+                "        }",
+            ]
+        )
+        if tenant_scoped:
+            lines.append('        values.pop("tenant_id", None)')
+        lines.extend(
+            [
+                "        for field, value in values.items():",
                 "            setattr(row, field, value)",
                 "        try:",
                 "            db.flush()",
@@ -700,8 +891,15 @@ class PythonFastAPITarget:
                 '            raise DuplicateResourceError("unique", "conflict") from exc',
                 "        return row",
                 "",
-                f"    def delete(self, db: Session, item_id: str) -> {model.name}Record:",
-                "        row = self.get(db, item_id)",
+                *self._method_signature_lines("delete", delete_params, f"{model.name}Record"),
+            ]
+        )
+        if tenant_scoped:
+            lines.append("        row = self.get(db, item_id, tenant_id)")
+        else:
+            lines.append("        row = self.get(db, item_id)")
+        lines.extend(
+            [
                 "        db.delete(row)",
                 "        db.flush()",
                 "        return row",
@@ -715,66 +913,119 @@ class PythonFastAPITarget:
         fields = model.attributes.get("fields", [])
         validation_lines = self._domain_validation_lines(fields, "payload")
         unique_fields = self._unique_fields(fields)
+        tenant_scoped = self._is_tenant_scoped(model)
         if repo_strategy == "sqlalchemy":
             unique_prechecks: list[str] = []
             for field in unique_fields:
+                lookup = (
+                    f"self.repository.get_by_{field['name']}("
+                    f"db, payload.{field['name']}, tenant_id)"
+                    if tenant_scoped
+                    else f"self.repository.get_by_{field['name']}(db, payload.{field['name']})"
+                )
                 unique_prechecks.extend(
                     [
-                        f"existing_{field['name']} = self.repository.get_by_{field['name']}(db, payload.{field['name']})",
+                        f"existing_{field['name']} = {lookup}",
                         f"if existing_{field['name']} is not None:",
                         f"    raise DuplicateResourceError({field['name']!r}, str(payload.{field['name']}))",
                     ]
                 )
             if not unique_prechecks:
                 unique_prechecks.append("pass")
-            return dedent(f"""
-                from __future__ import annotations
 
-                from sqlalchemy.orm import Session
+            list_params = ["self"]
+            if tenant_scoped:
+                list_params.append("tenant_id: str")
+            list_params.extend(["db: Session", "*", "offset: int = 0", "limit: int = 100"])
+            create_params = ["self", f"payload: {create_name}"]
+            get_params = ["self", "item_id: str"]
+            update_params = ["self", "item_id: str", f"payload: {create_name}"]
+            delete_params = ["self", "item_id: str"]
+            if tenant_scoped:
+                create_params.append("tenant_id: str")
+                get_params.append("tenant_id: str")
+                update_params.append("tenant_id: str")
+                delete_params.append("tenant_id: str")
+            create_params.append("db: Session")
+            get_params.append("db: Session")
+            update_params.append("db: Session")
+            delete_params.append("db: Session")
 
-                from app.core.errors import DuplicateResourceError, ValidationDomainError
-                from app.repositories.{module}_repository import {model.name}Repository
-                from app.schemas.{module} import {model.name}
-                from app.schemas.{self._module_name(create_name)} import {create_name}
+            list_call = (
+                "self.repository.list(db, tenant_id, offset=offset, limit=limit)"
+                if tenant_scoped
+                else "self.repository.list(db, offset=offset, limit=limit)"
+            )
+            create_call = (
+                "self.repository.create(db, payload, tenant_id)"
+                if tenant_scoped
+                else "self.repository.create(db, payload)"
+            )
+            get_call = (
+                "self.repository.get(db, item_id, tenant_id)"
+                if tenant_scoped
+                else "self.repository.get(db, item_id)"
+            )
+            update_call = (
+                "self.repository.update(db, item_id, payload, tenant_id)"
+                if tenant_scoped
+                else "self.repository.update(db, item_id, payload)"
+            )
+            delete_call = (
+                "self.repository.delete(db, item_id, tenant_id)"
+                if tenant_scoped
+                else "self.repository.delete(db, item_id)"
+            )
 
-
-                class {model.name}Service:
-                    def __init__(self, repository: {model.name}Repository) -> None:
-                        self.repository = repository
-
-                    def list(self, db: Session, *, offset: int = 0, limit: int = 100) -> list[{model.name}]:
-                        rows = self.repository.list(db, offset=offset, limit=limit)
-                        return [{model.name}.model_validate(row) for row in rows]
-
-                    def create(self, payload: {create_name}, db: Session) -> {model.name}:
-{self._indent_lines(validation_lines, 24)}
-{self._indent_lines(unique_prechecks, 24)}
-                        row = self.repository.create(db, payload)
-                        db.commit()
-                        db.refresh(row)
-                        return {model.name}.model_validate(row)
-
-                    def get(self, item_id: str, db: Session) -> {model.name}:
-                        row = self.repository.get(db, item_id)
-                        return {model.name}.model_validate(row)
-
-                    def update(self, item_id: str, payload: {create_name}, db: Session) -> {model.name}:
-{self._indent_lines(validation_lines, 24)}
-                        row = self.repository.update(db, item_id, payload)
-                        db.commit()
-                        db.refresh(row)
-                        return {model.name}.model_validate(row)
-
-                    def delete(self, item_id: str, db: Session) -> {model.name}:
-                        row = self.repository.delete(db, item_id)
-                        result = {model.name}.model_validate(row)
-                        db.commit()
-                        return result
-
-
-                repository = {model.name}Repository()
-                service = {model.name}Service(repository)
-            """).lstrip()
+            lines = [
+                "from __future__ import annotations",
+                "",
+                "from sqlalchemy.orm import Session",
+                "",
+                "from app.core.errors import DuplicateResourceError, ValidationDomainError",
+                f"from app.repositories.{module}_repository import {model.name}Repository",
+                f"from app.schemas.{module} import {model.name}",
+                f"from app.schemas.{self._module_name(create_name)} import {create_name}",
+                "",
+                "",
+                f"class {model.name}Service:",
+                f"    def __init__(self, repository: {model.name}Repository) -> None:",
+                "        self.repository = repository",
+                "",
+                *self._method_signature_lines("list", list_params, f"list[{model.name}]"),
+                f"        rows = {list_call}",
+                f"        return [{model.name}.model_validate(row) for row in rows]",
+                "",
+                *self._method_signature_lines("create", create_params, f"{model.name}"),
+                *(f"        {line}" if line else "" for line in validation_lines),
+                *(f"        {line}" if line else "" for line in unique_prechecks),
+                f"        row = {create_call}",
+                "        db.commit()",
+                "        db.refresh(row)",
+                f"        return {model.name}.model_validate(row)",
+                "",
+                *self._method_signature_lines("get", get_params, f"{model.name}"),
+                f"        row = {get_call}",
+                f"        return {model.name}.model_validate(row)",
+                "",
+                *self._method_signature_lines("update", update_params, f"{model.name}"),
+                *(f"        {line}" if line else "" for line in validation_lines),
+                f"        row = {update_call}",
+                "        db.commit()",
+                "        db.refresh(row)",
+                f"        return {model.name}.model_validate(row)",
+                "",
+                *self._method_signature_lines("delete", delete_params, f"{model.name}"),
+                f"        row = {delete_call}",
+                f"        result = {model.name}.model_validate(row)",
+                "        db.commit()",
+                "        return result",
+                "",
+                "",
+                f"repository = {model.name}Repository()",
+                f"service = {model.name}Service(repository)",
+            ]
+            return "\n".join(lines) + "\n"
         return dedent(f"""
             from __future__ import annotations
 
@@ -828,12 +1079,13 @@ class PythonFastAPITarget:
 
     def _routes_file(self, model: Any, routes: list[RoutePlan], repo_strategy: str) -> str:
         module = self._module_name(model.name)
+        tenant_scoped = self._is_tenant_scoped(model)
         create_names = sorted({r.body for r in routes if r.body and r.body != model.name})
 
         lines = [
             "from __future__ import annotations",
             "",
-            "from typing import Annotated",
+            "from typing import Annotated, Any",
             "",
             "from fastapi import APIRouter, Depends, Query, status",
         ]
@@ -847,6 +1099,8 @@ class PythonFastAPITarget:
         )
         if repo_strategy == "sqlalchemy":
             lines.append("from app.db.session import get_db")
+        if tenant_scoped:
+            lines.append("from app.platform.tenancy import TenantContext, get_tenant_context")
         lines.append(f"from app.schemas.{module} import {model.name}")
         for cname in create_names:
             lines.append(f"from app.schemas.{self._module_name(cname)} import {cname}")
@@ -860,33 +1114,51 @@ class PythonFastAPITarget:
         )
         if repo_strategy == "sqlalchemy":
             lines.append("DbSession = Annotated[Session, Depends(get_db)]")
+        if tenant_scoped:
+            lines.append("TenantDep = Annotated[TenantContext, Depends(get_tenant_context)]")
         if any(r.auth_required for r in routes):
             lines.append("CurrentUser = Annotated[TokenClaims, Depends(get_current_user)]")
         lines.append("")
 
         for r in sorted(routes, key=lambda x: (x.path, x.method, x.name)):
-            response = (
-                f"list[{r.returns}]"
-                if r.returns and r.returns_list
-                else (r.returns or "dict[str, str]")
-            )
+            path_params = self._path_params(r.path)
+            if r.returns and r.returns_list:
+                response = f"list[{r.returns}]"
+            elif r.returns:
+                response = r.returns
+            elif r.method == "DELETE" and path_params:
+                response = model.name
+            else:
+                response = "dict[str, str]"
             decorator = r.method.lower()
             if r.method == "POST":
-                lines.append(
-                    f"@router.{decorator}("
-                    f"{r.path!r}, response_model={response}, status_code=status.HTTP_201_CREATED"
-                    ")"
+                lines.extend(
+                    [
+                        f"@router.{decorator}(",
+                        f"    {r.path!r},",
+                        f"    response_model={response},",
+                        "    status_code=status.HTTP_201_CREATED,",
+                        ")",
+                    ]
                 )
             else:
-                lines.append(f"@router.{decorator}({r.path!r}, response_model={response})")
+                lines.extend(
+                    [
+                        f"@router.{decorator}(",
+                        f"    {r.path!r},",
+                        f"    response_model={response},",
+                        ")",
+                    ]
+                )
             fn_name = self._module_name(r.name)
             params: list[str] = []
-            path_params = self._path_params(r.path)
             params.extend(f"{name}: str" for name in path_params)
             if r.body:
                 params.append(f"payload: {r.body}")
             if repo_strategy == "sqlalchemy":
                 params.append("db: DbSession")
+            if tenant_scoped:
+                params.append("tenant: TenantDep")
             if r.auth_required:
                 params.append("_current_user: CurrentUser")
             if r.method == "GET" and r.returns_list:
@@ -895,33 +1167,58 @@ class PythonFastAPITarget:
             lines.append(f"def {fn_name}(")
             for param in params:
                 lines.append(f"    {param},")
-            lines.append(f") -> {response}:")
+            lines.append(") -> Any:")
             if r.auth_required:
                 lines.append("    _ = _current_user")
             item_id_expr = path_params[0] if path_params else "''"
             if r.method == "GET" and r.returns_list:
                 if repo_strategy == "sqlalchemy":
-                    lines.append("    return service.list(db, offset=offset, limit=limit)")
+                    if tenant_scoped:
+                        lines.append(
+                            "    return service.list("
+                            "tenant.tenant_id, db, offset=offset, limit=limit)"
+                        )
+                    else:
+                        lines.append("    return service.list(db, offset=offset, limit=limit)")
                 else:
                     lines.append("    return service.list(offset=offset, limit=limit)")
             elif r.method == "GET" and path_params:
                 if repo_strategy == "sqlalchemy":
-                    lines.append(f"    return service.get({item_id_expr}, db)")
+                    if tenant_scoped:
+                        lines.append(
+                            f"    return service.get({item_id_expr}, tenant.tenant_id, db)"
+                        )
+                    else:
+                        lines.append(f"    return service.get({item_id_expr}, db)")
                 else:
                     lines.append(f"    return service.get({item_id_expr})")
             elif r.method == "POST" and r.body:
                 if repo_strategy == "sqlalchemy":
-                    lines.append("    return service.create(payload, db)")
+                    if tenant_scoped:
+                        lines.append("    return service.create(payload, tenant.tenant_id, db)")
+                    else:
+                        lines.append("    return service.create(payload, db)")
                 else:
                     lines.append("    return service.create(payload)")
             elif r.method in {"PATCH", "PUT"} and r.body and path_params:
                 if repo_strategy == "sqlalchemy":
-                    lines.append(f"    return service.update({item_id_expr}, payload, db)")
+                    if tenant_scoped:
+                        lines.append(
+                            f"    return service.update({item_id_expr}, payload, "
+                            "tenant.tenant_id, db)"
+                        )
+                    else:
+                        lines.append(f"    return service.update({item_id_expr}, payload, db)")
                 else:
                     lines.append(f"    return service.update({item_id_expr}, payload)")
             elif r.method == "DELETE" and path_params:
                 if repo_strategy == "sqlalchemy":
-                    lines.append(f"    return service.delete({item_id_expr}, db)")
+                    if tenant_scoped:
+                        lines.append(
+                            f"    return service.delete({item_id_expr}, tenant.tenant_id, db)"
+                        )
+                    else:
+                        lines.append(f"    return service.delete({item_id_expr}, db)")
                 else:
                     lines.append(f"    return service.delete({item_id_expr})")
             else:
@@ -1381,7 +1678,11 @@ class PythonFastAPITarget:
         """).lstrip()
 
     def _test_files(
-        self, graph: SIRGraph, models: dict[str, Any], routes: list[RoutePlan], repo_strategy: str
+        self,
+        graph: SIRGraph,
+        models: dict[str, Any],
+        routes: list[RoutePlan],
+        repo_strategy: str,
     ) -> dict[str, str]:
         routes_by_entity: dict[str, list[RoutePlan]] = {}
         for route in routes:
@@ -1395,32 +1696,51 @@ class PythonFastAPITarget:
             files["tests/conftest.py"] = dedent("""
                 from __future__ import annotations
 
+                import atexit
                 import os
+                import shutil
                 from pathlib import Path
+                from tempfile import mkdtemp
 
-                os.environ.setdefault("DATABASE_URL", "sqlite:///./test_app.db")
+                _TEST_DB_DIR = Path(mkdtemp(prefix="ssm-generated-tests-"))
+                _TEST_DB_PATH = _TEST_DB_DIR / "test_app.db"
+
+                if os.environ.get("RUN_POSTGRES_INTEGRATION") != "1":
+                    os.environ["DATABASE_URL"] = f"sqlite:///{_TEST_DB_PATH.as_posix()}"
+                else:
+                    os.environ.setdefault("DATABASE_URL", "sqlite:///./test_app.db")
                 os.environ.setdefault("JWT_SECRET_KEY", "test-secret-key-change-me-32-bytes-min")
                 os.environ.setdefault("CREATE_DB_ON_STARTUP", "false")
 
-                import pytest
-                from fastapi.testclient import TestClient
+                import pytest  # noqa: E402
+                from fastapi.testclient import TestClient  # noqa: E402
 
-                from app.db.session import Base, engine
-                from app.main import app
+                from app.db.session import Base, engine  # noqa: E402
+                from app.main import app  # noqa: E402
+
+
+                def _cleanup_test_database() -> None:
+                    engine.dispose()
+                    shutil.rmtree(_TEST_DB_DIR, ignore_errors=True)
+
+
+                atexit.register(_cleanup_test_database)
 
 
                 @pytest.fixture(autouse=True)
-                def reset_database(tmp_path: Path):
-                    _ = tmp_path
+                def reset_database():
+                    engine.dispose()
                     Base.metadata.drop_all(bind=engine)
                     Base.metadata.create_all(bind=engine)
                     yield
                     Base.metadata.drop_all(bind=engine)
+                    engine.dispose()
 
 
                 @pytest.fixture
-                def client() -> TestClient:
-                    return TestClient(app)
+                def client():
+                    with TestClient(app) as test_client:
+                        yield test_client
             """).lstrip()
         else:
             repository_imports: list[str] = []
@@ -1467,6 +1787,7 @@ class PythonFastAPITarget:
         payloads_2: dict[str, dict[str, object]] = {}
         invalid_payloads: dict[str, dict[str, object]] = {}
         duplicate_payloads: dict[str, dict[str, object]] = {}
+        unique_fields_by_entity: dict[str, list[str]] = {}
         unique_entities: list[str] = []
         for entity in sorted(routes_by_entity):
             entity_routes = routes_by_entity[entity]
@@ -1478,23 +1799,32 @@ class PythonFastAPITarget:
             )
             payloads[entity] = self._sample_payload(reference_model, include_primary=False)
             payloads_2[entity] = self._sample_payload(
-                reference_model, include_primary=False, suffix=f"{self._module_name(entity)}-two"
+                reference_model,
+                include_primary=False,
+                suffix=f"{self._module_name(entity)}-two",
             )
             invalid_payloads[entity] = self._invalid_payload(reference_model)
             duplicate_payloads[entity] = dict(payloads[entity])
-            if self._unique_fields(
+            unique_fields = self._unique_fields(
                 reference_model.attributes.get("fields", []) if reference_model else []
-            ):
+            )
+            unique_fields_by_entity[entity] = [field["name"] for field in unique_fields]
+            if unique_fields:
                 unique_entities.append(entity)
 
         payloads_repr = pformat(payloads, width=60)
         payloads_2_repr = pformat(payloads_2, width=60)
         invalid_payloads_repr = pformat(invalid_payloads, width=60)
         duplicate_payloads_repr = pformat(duplicate_payloads, width=60)
+        unique_fields_repr = pformat(unique_fields_by_entity, width=60)
 
-        def assignment_lines(name: str, value_repr: str) -> list[str]:
+        def assignment_lines(
+            name: str,
+            value_repr: str,
+            annotation: str = "dict[str, dict[str, object]]",
+        ) -> list[str]:
             return [
-                f"{name}: dict[str, dict[str, object]] = (",
+                f"{name}: {annotation} = (",
                 *[f"    {line}" for line in value_repr.splitlines()],
                 ")",
             ]
@@ -1502,26 +1832,62 @@ class PythonFastAPITarget:
         factory_lines = [
             "from __future__ import annotations",
             "",
+            "from itertools import count",
+            "from uuid import UUID, uuid4",
+            "",
             security_import,
             "",
             *assignment_lines("PAYLOADS", payloads_repr),
             *assignment_lines("SECOND_PAYLOADS", payloads_2_repr),
             *assignment_lines("INVALID_PAYLOADS", invalid_payloads_repr),
             *assignment_lines("DUPLICATE_PAYLOADS", duplicate_payloads_repr),
+            *assignment_lines("UNIQUE_FIELDS", unique_fields_repr, "dict[str, list[str]]"),
             f"DEFAULT_ENTITY = {first_entity!r}",
+            'TEST_TENANT_ID = "00000000-0000-4000-8000-000000000001"',
+            'OTHER_TENANT_ID = "00000000-0000-4000-8000-000000000002"',
+            "_UNIQUE_COUNTERS = {entity: count(1) for entity in PAYLOADS}",
             "",
             "",
-            'def auth_headers(subject: str = "test-user") -> dict[str, str]:',
+            "def auth_headers(",
+            '    subject: str = "test-user",',
+            "    tenant_id: str = TEST_TENANT_ID,",
+            ") -> dict[str, str]:",
             '    token = create_access_token(subject=subject, scopes=["user"])',
-            '    return {"Authorization": f"Bearer {token}"}',
+            "    return {",
+            '        "Authorization": f"Bearer {token}",',
+            '        "x-tenant-id": tenant_id,',
+            "    }",
+            "",
+            "",
+            "def _unique_payload(entity: str, payload: dict[str, object]) -> dict[str, object]:",
+            "    fields = UNIQUE_FIELDS.get(entity, [])",
+            "    if not fields:",
+            "        return payload",
+            "    suffix = next(_UNIQUE_COUNTERS[entity])",
+            "    for field in fields:",
+            "        value = payload.get(field)",
+            "        if isinstance(value, str):",
+            "            try:",
+            "                UUID(value)",
+            "            except ValueError:",
+            "                payload[field] = f'{value}-{suffix}'",
+            "            else:",
+            "                payload[field] = str(uuid4())",
+            "        elif isinstance(value, int):",
+            "            payload[field] = value + suffix",
+            "        elif isinstance(value, float):",
+            "            payload[field] = value + float(suffix)",
+            "        else:",
+            "            payload[field] = f'{value}-{suffix}'",
+            "    return payload",
             "",
             "",
             "def valid_payload(entity: str = DEFAULT_ENTITY) -> dict[str, object]:",
-            "    return dict(PAYLOADS[entity])",
+            "    return _unique_payload(entity, dict(PAYLOADS[entity]))",
             "",
             "",
             "def second_payload(entity: str = DEFAULT_ENTITY) -> dict[str, object]:",
-            "    return dict(SECOND_PAYLOADS[entity])",
+            "    return _unique_payload(entity, dict(SECOND_PAYLOADS[entity]))",
             "",
             "",
             "def invalid_payload(entity: str = DEFAULT_ENTITY) -> dict[str, object]:",
@@ -1577,20 +1943,23 @@ class PythonFastAPITarget:
             for entity in sorted(routes_by_entity):
                 entity_routes = routes_by_entity[entity]
                 list_route = next(
-                    (r for r in entity_routes if r.method == "GET" and r.returns_list), None
+                    (r for r in entity_routes if r.method == "GET" and r.returns_list),
+                    None,
                 )
                 create_route = next(
                     (r for r in entity_routes if r.method == "POST" and r.body), None
                 )
                 get_route = next(
-                    (r for r in entity_routes if r.method == "GET" and "{" in r.path), None
+                    (r for r in entity_routes if r.method == "GET" and "{" in r.path),
+                    None,
                 )
                 update_route = next(
                     (r for r in entity_routes if r.method in {"PATCH", "PUT"} and "{" in r.path),
                     None,
                 )
                 delete_route = next(
-                    (r for r in entity_routes if r.method == "DELETE" and "{" in r.path), None
+                    (r for r in entity_routes if r.method == "DELETE" and "{" in r.path),
+                    None,
                 )
                 mod = self._module_name(entity)
                 if create_route is None or list_route is None:
@@ -1599,14 +1968,15 @@ class PythonFastAPITarget:
                     [
                         "",
                         f"def test_create_and_list_{mod}(client) -> None:",
+                        f"    payload = valid_payload({entity!r})",
                         "    response = client.post(",
                         f"        {create_route.path!r},",
-                        f"        json=valid_payload({entity!r}),",
+                        "        json=payload,",
                         "        headers=auth_headers(),",
                         "    )",
                         "    assert response.status_code == 201",
                         "    body = response.json()",
-                        f"    for key, value in valid_payload({entity!r}).items():",
+                        "    for key, value in payload.items():",
                         "        assert body[key] == value",
                         "    assert 'id' in body",
                         "",
@@ -1623,9 +1993,10 @@ class PythonFastAPITarget:
                         [
                             "",
                             f"def test_get_{mod}_by_id(client) -> None:",
+                            f"    payload = valid_payload({entity!r})",
                             "    created = client.post(",
                             f"        {create_route.path!r},",
-                            f"        json=valid_payload({entity!r}),",
+                            "        json=payload,",
                             "        headers=auth_headers(),",
                             "    ).json()",
                             f"    response = client.get(_path({get_route.path!r}, created['id']), headers=auth_headers())",
@@ -1638,18 +2009,20 @@ class PythonFastAPITarget:
                         [
                             "",
                             f"def test_update_{mod}(client) -> None:",
+                            f"    payload = valid_payload({entity!r})",
+                            f"    update_payload = second_payload({entity!r})",
                             "    created = client.post(",
                             f"        {create_route.path!r},",
-                            f"        json=valid_payload({entity!r}),",
+                            "        json=payload,",
                             "        headers=auth_headers(),",
                             "    ).json()",
                             "    response = client.patch(",
                             f"        _path({update_route.path!r}, created['id']),",
-                            f"        json=second_payload({entity!r}),",
+                            "        json=update_payload,",
                             "        headers=auth_headers(),",
                             "    )",
                             "    assert response.status_code == 200",
-                            f"    for key, value in second_payload({entity!r}).items():",
+                            "    for key, value in update_payload.items():",
                             "        assert response.json()[key] == value",
                         ]
                     )
@@ -1658,9 +2031,10 @@ class PythonFastAPITarget:
                         [
                             "",
                             f"def test_delete_{mod}(client) -> None:",
+                            f"    payload = valid_payload({entity!r})",
                             "    created = client.post(",
                             f"        {create_route.path!r},",
-                            f"        json=valid_payload({entity!r}),",
+                            "        json=payload,",
                             "        headers=auth_headers(),",
                             "    ).json()",
                             f"    response = client.delete(_path({delete_route.path!r}, created['id']), headers=auth_headers())",
@@ -1675,10 +2049,11 @@ class PythonFastAPITarget:
                         [
                             "",
                             f"def test_duplicate_unique_value_is_rejected_for_{mod}(client) -> None:",
-                            f"    client.post({create_route.path!r}, json=valid_payload({entity!r}), headers=auth_headers())",
+                            f"    payload = valid_payload({entity!r})",
+                            f"    client.post({create_route.path!r}, json=payload, headers=auth_headers())",
                             "    response = client.post(",
                             f"        {create_route.path!r},",
-                            f"        json=duplicate_payload({entity!r}),",
+                            "        json=payload,",
                             "        headers=auth_headers(),",
                             "    )",
                             "    assert response.status_code == 409",
@@ -1698,7 +2073,9 @@ class PythonFastAPITarget:
                     ]
                 )
             files["tests/test_api.py"] = "\n".join(test_lines) + "\n"
-            service_contract = self._service_contract_test_file(routes_by_entity, repo_strategy)
+            service_contract = self._service_contract_test_file(
+                routes_by_entity, models, repo_strategy
+            )
             if service_contract:
                 files["tests/test_service_contracts.py"] = service_contract
         else:
@@ -1727,6 +2104,7 @@ class PythonFastAPITarget:
     def _service_contract_test_file(
         self,
         routes_by_entity: dict[str, list[RoutePlan]],
+        models: dict[str, Any],
         repo_strategy: str,
     ) -> str:
         entities: list[tuple[str, str]] = []
@@ -1761,7 +2139,12 @@ class PythonFastAPITarget:
             imports.append(f"from app.services.{module}_service import service as {service_alias}")
         imports.extend(
             [
-                "from tests.factories import second_payload, valid_payload",
+                "from tests.factories import (",
+                "    OTHER_TENANT_ID,",
+                "    TEST_TENANT_ID,",
+                "    second_payload,",
+                "    valid_payload,",
+                ")",
                 "",
                 "",
             ]
@@ -1773,31 +2156,100 @@ class PythonFastAPITarget:
             service_alias = f"{module}_service"
             test_name = f"test_{module}_service_full_crud_contract"
             if repo_strategy == "sqlalchemy":
+                tenant_scoped = self._is_tenant_scoped(models[entity])
+                create_args = (
+                    ["            TEST_TENANT_ID,", "            db,"]
+                    if tenant_scoped
+                    else ["            db,"]
+                )
+                list_call = (
+                    f"{service_alias}.list(TEST_TENANT_ID, db)"
+                    if tenant_scoped
+                    else f"{service_alias}.list(db)"
+                )
+                get_call = (
+                    f"{service_alias}.get(item_id, TEST_TENANT_ID, db)"
+                    if tenant_scoped
+                    else f"{service_alias}.get(item_id, db)"
+                )
+                update_args = (
+                    ["            TEST_TENANT_ID,", "            db,"]
+                    if tenant_scoped
+                    else ["            db,"]
+                )
+                delete_call = (
+                    f"{service_alias}.delete(item_id, TEST_TENANT_ID, db)"
+                    if tenant_scoped
+                    else f"{service_alias}.delete(item_id, db)"
+                )
                 lines.extend(
                     [
                         f"def {test_name}() -> None:",
                         "    db = SessionLocal()",
                         "    try:",
+                        f"        create_payload = valid_payload({entity!r})",
                         f"        created = {service_alias}.create(",
-                        f"            {create_schema}(**valid_payload({entity!r})),",
-                        "            db,",
+                        f"            {create_schema}(**create_payload),",
+                        *create_args,
                         "        )",
-                        f"        listed = {service_alias}.list(db)",
+                        f"        listed = {list_call}",
                         "        assert [item.id for item in listed] == [created.id]",
                         "        item_id = str(created.id)",
-                        f"        fetched = {service_alias}.get(item_id, db)",
+                        f"        fetched = {get_call}",
                         "        assert fetched.id == created.id",
+                    ]
+                )
+                if tenant_scoped:
+                    lines.extend(
+                        [
+                            f"        assert {service_alias}.list(OTHER_TENANT_ID, db) == []",
+                            "        try:",
+                            f"            {service_alias}.get(item_id, OTHER_TENANT_ID, db)",
+                            "        except NotFoundError:",
+                            "            pass",
+                            "        else:",
+                            "            raise AssertionError('expected cross-tenant lookup to fail')",
+                        ]
+                    )
+                    unique_fields = self._unique_fields(models[entity].attributes.get("fields", []))
+                    if unique_fields:
+                        lines.extend(
+                            [
+                                f"        other_created = {service_alias}.create(",
+                                f"            {create_schema}(**create_payload),",
+                                "            OTHER_TENANT_ID,",
+                                "            db,",
+                                "        )",
+                                "        assert other_created.id != created.id",
+                            ]
+                        )
+                        for field in unique_fields:
+                            lines.append(
+                                f"        assert other_created.{field['name']} == created.{field['name']}"
+                            )
+                        lines.extend(
+                            [
+                                f"        {service_alias}.delete(",
+                                "            str(other_created.id),",
+                                "            OTHER_TENANT_ID,",
+                                "            db,",
+                                "        )",
+                            ]
+                        )
+                lines.extend(
+                    [
+                        f"        update_payload = second_payload({entity!r})",
                         f"        updated = {service_alias}.update(",
                         "            item_id,",
-                        f"            {create_schema}(**second_payload({entity!r})),",
-                        "            db,",
+                        f"            {create_schema}(**update_payload),",
+                        *update_args,
                         "        )",
-                        f"        for field, value in second_payload({entity!r}).items():",
+                        "        for field, value in update_payload.items():",
                         "            assert str(getattr(updated, field)) == str(value)",
-                        f"        deleted = {service_alias}.delete(item_id, db)",
+                        f"        deleted = {delete_call}",
                         "        assert deleted.id == created.id",
                         "        try:",
-                        f"            {service_alias}.get(item_id, db)",
+                        f"            {get_call}",
                         "        except NotFoundError:",
                         "            pass",
                         "        else:",
@@ -1820,11 +2272,12 @@ class PythonFastAPITarget:
                         "    item_id = str(created.id)",
                         f"    fetched = {service_alias}.get(item_id)",
                         "    assert fetched.id == created.id",
+                        f"    update_payload = second_payload({entity!r})",
                         f"    updated = {service_alias}.update(",
                         "        item_id,",
-                        f"        {create_schema}(**second_payload({entity!r})),",
+                        f"        {create_schema}(**update_payload),",
                         "    )",
-                        f"    for field, value in second_payload({entity!r}).items():",
+                        "    for field, value in update_payload.items():",
                         "        assert str(getattr(updated, field)) == str(value)",
                         f"    deleted = {service_alias}.delete(item_id)",
                         "    assert deleted.id == created.id",
@@ -1845,7 +2298,13 @@ class PythonFastAPITarget:
         models: dict[str, Any],
         routes: list[RoutePlan],
     ) -> str:
-        expected_schemas = pformat(sorted(models), width=88)
+        route_schema_names = {
+            schema_name
+            for route in routes
+            for schema_name in [route.body, route.returns]
+            if schema_name and schema_name in models
+        }
+        expected_schemas = pformat(sorted(route_schema_names), width=88)
         expected_routes = pformat(
             [
                 {"path": r.path, "method": r.method.lower(), "auth": r.auth_required}
@@ -1958,6 +2417,10 @@ class PythonFastAPITarget:
                 payload[name] = 5.0 if suffix == "demo" else 7.0
             elif typ == "bool":
                 payload[name] = False
+            elif typ == "date":
+                payload[name] = "2026-01-01" if suffix == "demo" else "2026-01-02"
+            elif typ == "datetime":
+                payload[name] = "2026-01-01T09:00:00" if suffix == "demo" else "2026-01-02T09:00:00"
             else:
                 payload[name] = suffix
         return payload or {"name": suffix}
@@ -2423,7 +2886,8 @@ class PythonFastAPITarget:
             GeneratedFile(path="alembic.ini", content=self._alembic_ini()),
             GeneratedFile(path="app/db/migrations/env.py", content=self._alembic_env()),
             GeneratedFile(
-                path="app/db/migrations/script.py.mako", content=self._alembic_script_template()
+                path="app/db/migrations/script.py.mako",
+                content=self._alembic_script_template(),
             ),
             GeneratedFile(path="app/db/migrations/versions/__init__.py", content=""),
             GeneratedFile(
@@ -2561,22 +3025,37 @@ class PythonFastAPITarget:
                 continue
             table = self._table_name(model.name)
             fields = model.attributes.get("fields", [])
+            tenant_scoped = self._is_tenant_scoped(model)
             pk_fields = [f["name"] for f in fields if f.get("primary")]
             unique_fields = [f["name"] for f in fields if f.get("unique")]
+            tenant_unique_fields = [
+                field for field in unique_fields if field.lower() != "tenant_id"
+            ]
+            global_unique_fields = (
+                [field for field in unique_fields if field.lower() == "tenant_id"]
+                if tenant_scoped
+                else unique_fields
+            )
             upgrade_lines.append(f"    op.create_table({table!r},")
             for f in fields:
                 upgrade_lines.append(f"        {self._migration_column(f)},")
             if pk_fields:
                 quoted = ", ".join(repr(x) for x in pk_fields)
                 upgrade_lines.append(f"        sa.PrimaryKeyConstraint({quoted}),")
-            for field in unique_fields:
+            for field in global_unique_fields:
                 upgrade_lines.append(f"        sa.UniqueConstraint({field!r}),")
+            if tenant_scoped:
+                for field in tenant_unique_fields:
+                    name = f"uq_{table}_tenant_id_{field}"
+                    upgrade_lines.append(
+                        f"        sa.UniqueConstraint('tenant_id', {field!r}, name={name!r}),"
+                    )
             upgrade_lines.append("    )")
-            for field in unique_fields:
+            for field in global_unique_fields:
                 upgrade_lines.append(
                     f"    op.create_index('ix_{table}_{field}', {table!r}, [{field!r}], unique=True)"
                 )
-            for field in reversed(unique_fields):
+            for field in reversed(global_unique_fields):
                 downgrade_lines.append(
                     f"    op.drop_index('ix_{table}_{field}', table_name={table!r})"
                 )

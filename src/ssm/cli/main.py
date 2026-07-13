@@ -144,8 +144,11 @@ def main(argv: list[str] | None = None) -> int:
             )
             return 0
         if args.command == "draft":
+            # Keep `draft` offline by default even when the shell still contains
+            # online-build environment variables from a live E2E run.
+            effective_agent_mode = args.agent_mode or "offline"
             settings = OnlineAgentSettings.from_env().with_overrides(
-                agent_mode=args.agent_mode,
+                agent_mode=effective_agent_mode,
                 provider=args.provider,
                 model=args.model,
                 temperature=args.temperature,

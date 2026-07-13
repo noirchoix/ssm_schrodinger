@@ -9,7 +9,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from ssm.agents.online import OnlineDraftService
+from ssm.agents.online import OnlineDraftService, OnlineDraftValidationError
 from ssm.agents.settings import OnlineAgentSettings
 from ssm.evidence import validate_evidence_directory
 from ssm.foundation.negotiator import CapabilityNegotiator
@@ -68,7 +68,29 @@ class OnlineBuildService:
                 if not last_issue
                 else f"{prompt}\n\nPrevious build issue:\n{last_issue}\nRepair the SML only."
             )
-            draft = OnlineDraftService(self.settings, compiler=self.compiler).draft(repair_prompt)
+            try:
+                draft = OnlineDraftService(self.settings, compiler=self.compiler).draft(
+                    repair_prompt
+                )
+            except OnlineDraftValidationError as exc:
+                last_issue = f"Online draft validation failed: {exc}"
+                trace.append(
+                    RepairTraceEvent(
+                        attempt=attempt,
+                        stage="online_draft",
+                        status="rejected",
+                        message=last_issue,
+                    )
+                )
+                last_result = OnlineBuildResult(
+                    status="REJECTED",
+                    draft_path=str(draft_path),
+                    generated_path=str(generated_dir),
+                    repair_trace_path=str(trace_path),
+                    attempts=attempt,
+                )
+                continue
+
             draft_dir.mkdir(parents=True, exist_ok=True)
             draft_path.write_text(draft.text, encoding="utf-8")
             negotiation = self.negotiator.negotiate_sml_text(
@@ -131,7 +153,7 @@ class OnlineBuildService:
                     attempt=attempt,
                     stage="quality_gates" if quality_gates else "compile",
                     status="accepted" if accepted else "rejected",
-                    message="accepted" if accepted else self._gate_failure_summary(gate_results),
+                    message=("accepted" if accepted else self._gate_failure_summary(gate_results)),
                     quality_gate_results=gate_results,
                 )
             )

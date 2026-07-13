@@ -162,6 +162,7 @@ if [ "$RUN_DEEPSEEK_LIVE" = "1" ]; then
   export SSM_LLM_MODEL="${SSM_LLM_MODEL:-deepseek-chat}"
 
   rm -rf "$BUILD_ROOT/deepseek_live"
+  mkdir -p "$BUILD_ROOT/deepseek_live"
   python -m ssm.cli.main online-build \
     --agent-mode online \
     --provider deepseek \
@@ -169,7 +170,14 @@ if [ "$RUN_DEEPSEEK_LIVE" = "1" ]; then
     --prompt "Build an HR leave approval SaaS with employees, leave requests, manager approval, leave balance rules, tenant isolation, audit logs, OpenAPI contract tests, and Docker support." \
     --out "$BUILD_ROOT/deepseek_live" \
     --quality-gates \
-    --repair-attempts 2
+    --repair-attempts 2 | tee "$BUILD_ROOT/deepseek_live/online_build_result.json"
+
+  test -f "$BUILD_ROOT/deepseek_live/repair_trace.json"
+  if [ ! -d "$BUILD_ROOT/deepseek_live/generated_app" ]; then
+    echo "ERROR: Live DeepSeek online-build did not generate an app. Repair trace follows:"
+    cat "$BUILD_ROOT/deepseek_live/repair_trace.json"
+    exit 1
+  fi
 
   quality_generated_app "$BUILD_ROOT/deepseek_live/generated_app"
 else
