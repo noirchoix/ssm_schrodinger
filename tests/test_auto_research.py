@@ -7,7 +7,6 @@ from pathlib import Path
 from ssm.auto_research.assay import compare_releases
 from ssm.auto_research.bench import validate_benchmark_manifest
 from ssm.auto_research.contracts import verify_contract
-from ssm.auto_research.hashing import write_canonical_json
 from ssm.auto_research.records import load_generation_run_record
 from ssm.auto_research.registry import ContentAddressedRegistry
 from ssm.auto_research.schemas import (
@@ -57,11 +56,7 @@ def _run(
         source_sha256=f"source-{case}",
         environment=_environment(),
         stage_fingerprints={"requirements": "stable", "sml": stage},
-        metrics={
-            "quality": MetricObservation(
-                name="quality", value=metric, source="test"
-            )
-        },
+        metrics={"quality": MetricObservation(name="quality", value=metric, source="test")},
         slices={"domain_pack": slice_value},
     )
 
@@ -161,15 +156,11 @@ def test_content_addressed_registry_detects_tampering(tmp_path: Path) -> None:
 def test_four_state_assay_and_stage_attribution() -> None:
     baseline = [_run(case="A", replicate=index, metric=10.0, stage="s1") for index in range(6)]
     unchanged = [_run(case="A", replicate=index, metric=10.0, stage="s1") for index in range(6)]
-    no_change = compare_releases(
-        baseline, unchanged, metrics=["quality"], minimum_pairs=5
-    )
+    no_change = compare_releases(baseline, unchanged, metrics=["quality"], minimum_pairs=5)
     assert no_change.verdict == "NO_MATERIAL_CHANGE"
 
     candidate = [_run(case="A", replicate=index, metric=8.0, stage="s2") for index in range(6)]
-    regression = compare_releases(
-        baseline, candidate, metrics=["quality"], minimum_pairs=5
-    )
+    regression = compare_releases(baseline, candidate, metrics=["quality"], minimum_pairs=5)
     assert regression.verdict == "REGRESSION"
     assert regression.attribution.first_changed_stage == "sml"
     assert any(item.verdict == "REGRESSION" for item in regression.slice_results)
@@ -179,9 +170,7 @@ def test_four_state_assay_and_stage_attribution() -> None:
         baseline_release="base",
         candidate_release="candidate",
         objectives=["reduce quality deliberately for lower cost"],
-        accepted_tradeoffs=[
-            TradeoffEnvelope(metric="quality", maximum_decrease=2.0)
-        ],
+        accepted_tradeoffs=[TradeoffEnvelope(metric="quality", maximum_decrease=2.0)],
         approved=True,
     )
     intended = compare_releases(
@@ -201,9 +190,7 @@ def test_four_state_assay_and_stage_attribution() -> None:
 
 def test_frozen_ssm_bench_v1_is_content_addressed() -> None:
     root = Path(__file__).resolve().parents[1]
-    manifest = validate_benchmark_manifest(
-        root / "benchmarks" / "ssm_bench_v1" / "manifest.json"
-    )
+    manifest = validate_benchmark_manifest(root / "benchmarks" / "ssm_bench_v1" / "manifest.json")
     assert manifest.frozen is True
     assert len(manifest.cases) == 30
     assert manifest.benchmark_id.startswith("sha256:")

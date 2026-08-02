@@ -19,10 +19,18 @@ def compute_corpus_sha256(root: str | Path, manifest: BenchmarkManifest) -> str:
         try:
             path.relative_to(base.resolve())
         except ValueError as exc:
-            raise BenchmarkValidationError(f"Benchmark path escapes corpus root: {case.intent_path}") from exc
+            raise BenchmarkValidationError(
+                f"Benchmark path escapes corpus root: {case.intent_path}"
+            ) from exc
         if not path.is_file():
             raise BenchmarkValidationError(f"Missing benchmark intent: {case.intent_path}")
-        payload.append({"case_id": case.case_id, "intent_sha256": sha256_value(path.read_text(encoding="utf-8")), "slices_sha256": sha256_value(case.slices)})
+        payload.append(
+            {
+                "case_id": case.case_id,
+                "intent_sha256": sha256_value(path.read_text(encoding="utf-8")),
+                "slices_sha256": sha256_value(case.slices),
+            }
+        )
     return sha256_value(payload)
 
 

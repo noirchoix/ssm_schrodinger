@@ -285,7 +285,9 @@ class OnlineBuildService:
         trace_id: str,
     ) -> None:
         generated = Path(result.generated_path)
-        generated_files = [path for path in generated.rglob("*") if path.is_file()] if generated.exists() else []
+        generated_files = (
+            [path for path in generated.rglob("*") if path.is_file()] if generated.exists() else []
+        )
         draft = Path(result.draft_path)
         repair = Path(result.repair_trace_path) if result.repair_trace_path else None
         stage_fingerprints = {
@@ -297,7 +299,9 @@ class OnlineBuildService:
                 }
             ),
             "quality_gates": sha256_value(result.quality_gate_results),
-            "repair_trace": sha256_file(repair) if repair is not None and repair.is_file() else sha256_value(None),
+            "repair_trace": sha256_file(repair)
+            if repair is not None and repair.is_file()
+            else sha256_value(None),
         }
         metrics = {
             "compile_success": MetricObservation(
@@ -319,16 +323,16 @@ class OnlineBuildService:
             ),
             "quality_gate_pass": MetricObservation(
                 name="quality_gate_pass",
-                value=all(code == 0 for code in result.quality_gate_results.values()) if result.quality_gate_results else None,
+                value=all(code == 0 for code in result.quality_gate_results.values())
+                if result.quality_gate_results
+                else None,
                 source="quality_gate_results" if result.quality_gate_results else None,
                 measured=bool(result.quality_gate_results),
             ),
             "token_count": MetricObservation(
                 name="token_count", value=None, unit="tokens", measured=False
             ),
-            "cost_usd": MetricObservation(
-                name="cost_usd", value=None, unit="USD", measured=False
-            ),
+            "cost_usd": MetricObservation(name="cost_usd", value=None, unit="USD", measured=False),
         }
         record = build_generation_run_record(
             output=out,

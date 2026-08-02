@@ -409,7 +409,18 @@ def main(argv: list[str] | None = None) -> int:
             )
             run_path = Path(args.out) / "generation_run.json"
             run = load_generation_run_record(run_path)
-            print(json.dumps({"success": result.status != "REJECTED", "status": result.status, "run_record": str(run_path), "record_id": run.record_id, "trace_ids": run.trace_ids}, indent=2))
+            print(
+                json.dumps(
+                    {
+                        "success": result.status != "REJECTED",
+                        "status": result.status,
+                        "run_record": str(run_path),
+                        "record_id": run.record_id,
+                        "trace_ids": run.trace_ids,
+                    },
+                    indent=2,
+                )
+            )
             return 0 if result.status != "REJECTED" else 2
         if args.command == "research-trace-report":
             report = determinism_census(args.trace)
@@ -425,22 +436,41 @@ def main(argv: list[str] | None = None) -> int:
             print(report.model_dump_json(indent=2))
             return 0 if report.equivalent else 2
         if args.command == "research-contract-verify":
-            contract = BehaviouralContract.model_validate_json(Path(args.contract).read_text(encoding="utf-8"))
+            contract = BehaviouralContract.model_validate_json(
+                Path(args.contract).read_text(encoding="utf-8")
+            )
             run = load_generation_run_record(args.run)
             evaluation = verify_contract(contract, run)
             write_canonical_json(args.out, evaluation.model_dump(mode="json"))
             registry_entry = None
             if args.registry:
-                registry_entry = ContentAddressedRegistry(args.registry).add(evaluation.model_dump(mode="json"))
-            print(json.dumps({"verdict": evaluation.verdict, "eval_run_id": evaluation.eval_run_id, "out": args.out, "registry": registry_entry.model_dump(mode="json") if registry_entry else None}, indent=2))
+                registry_entry = ContentAddressedRegistry(args.registry).add(
+                    evaluation.model_dump(mode="json")
+                )
+            print(
+                json.dumps(
+                    {
+                        "verdict": evaluation.verdict,
+                        "eval_run_id": evaluation.eval_run_id,
+                        "out": args.out,
+                        "registry": registry_entry.model_dump(mode="json")
+                        if registry_entry
+                        else None,
+                    },
+                    indent=2,
+                )
+            )
             return 0 if evaluation.verdict == "PASS" else 2
         if args.command == "research-registry-add":
             payload = json.loads(Path(args.file).read_text(encoding="utf-8"))
             if not isinstance(payload, dict):
                 raise ValueError("Registry input must contain a JSON object.")
             import os
+
             key = os.getenv("SSM_RESEARCH_REGISTRY_KEY")
-            entry = ContentAddressedRegistry(args.registry).add(payload, signing_key=key, key_id=args.key_id)
+            entry = ContentAddressedRegistry(args.registry).add(
+                payload, signing_key=key, key_id=args.key_id
+            )
             print(entry.model_dump_json(indent=2))
             return 0
         if args.command == "research-registry-verify":
@@ -449,14 +479,26 @@ def main(argv: list[str] | None = None) -> int:
             return 0 if valid else 2
         if args.command == "research-bench-validate":
             manifest = validate_benchmark_manifest(args.manifest)
-            print(json.dumps({"valid": True, "benchmark_id": manifest.benchmark_id, "cases": len(manifest.cases), "corpus_sha256": manifest.corpus_sha256}, indent=2))
+            print(
+                json.dumps(
+                    {
+                        "valid": True,
+                        "benchmark_id": manifest.benchmark_id,
+                        "cases": len(manifest.cases),
+                        "corpus_sha256": manifest.corpus_sha256,
+                    },
+                    indent=2,
+                )
+            )
             return 0
         if args.command == "research-assay":
             baseline = load_run_records(args.baseline)
             candidate = load_run_records(args.candidate)
             change_intent = None
             if args.change_intent:
-                change_intent = ChangeIntentContract.model_validate_json(Path(args.change_intent).read_text(encoding="utf-8"))
+                change_intent = ChangeIntentContract.model_validate_json(
+                    Path(args.change_intent).read_text(encoding="utf-8")
+                )
             report = compare_releases(
                 baseline,
                 candidate,

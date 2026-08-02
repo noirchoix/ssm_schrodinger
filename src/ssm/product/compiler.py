@@ -3,9 +3,10 @@ from __future__ import annotations
 import hashlib
 import json
 import time
+from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Callable, Literal, TypeVar
+from typing import Literal, TypeVar
 
 from ssm.architecture.resolver import ConstrainedArchitectureResolver
 from ssm.auto_research.hashing import sha256_value
@@ -161,9 +162,7 @@ class SchrodingerProductCompiler:
                     "replicate_id": replicate_id,
                 },
             )
-        collapse = self.collapse_text(
-            text, source_name=source_name, trace_recorder=trace_recorder
-        )
+        collapse = self.collapse_text(text, source_name=source_name, trace_recorder=trace_recorder)
         blocking = self._blocking_reasons(collapse)
         if blocking and not allow_partial:
             if trace_recorder is not None:
@@ -370,12 +369,17 @@ class SchrodingerProductCompiler:
     def _research_slices(self, collapse: CollapsePlan) -> dict[str, str]:
         capability_ids = sorted(item.capability_id for item in collapse.capabilities.selected)
         return {
-            "domain_pack": "+".join(sorted(collapse.negotiation.selected_domain_packs)) or "generic",
+            "domain_pack": "+".join(sorted(collapse.negotiation.selected_domain_packs))
+            or "generic",
             "database": collapse.foundation.database,
             "tenancy": "enabled" if collapse.foundation.tenant_enabled else "disabled",
             "workflow": "enabled" if collapse.foundation.workflows else "disabled",
-            "update_model": "present" if any(entity.name.endswith("Update") for entity in collapse.foundation.entities) else "absent",
-            "rule_complexity": "contextual_or_multi" if collapse.foundation.business_rules else "none",
+            "update_model": "present"
+            if any(entity.name.endswith("Update") for entity in collapse.foundation.entities)
+            else "absent",
+            "rule_complexity": "contextual_or_multi"
+            if collapse.foundation.business_rules
+            else "none",
             "capabilities": "+".join(capability_ids),
         }
 

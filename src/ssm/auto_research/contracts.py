@@ -57,7 +57,9 @@ def _verify_rule(rule: MetricRule, run: GenerationRunRecord) -> RuleVerification
         metric=rule.metric,
         verdict="PASS" if passed else "FAIL",
         observed=observed,
-        message=("Rule satisfied." if passed else f"Rule {rule.operator} {rule.threshold!r} failed."),
+        message=(
+            "Rule satisfied." if passed else f"Rule {rule.operator} {rule.threshold!r} failed."
+        ),
     )
 
 

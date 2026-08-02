@@ -2,12 +2,10 @@ from __future__ import annotations
 
 import json
 import platform as platform_module
-import sys
 import time
 import uuid
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
 
 from ssm import __version__
 from ssm.auto_research.hashing import sha256_file, sha256_value, write_canonical_json
@@ -55,7 +53,9 @@ def environment_identity(
     )
 
 
-def artifact_references(root: str | Path, *, exclude: set[str] | None = None) -> list[ArtifactReference]:
+def artifact_references(
+    root: str | Path, *, exclude: set[str] | None = None
+) -> list[ArtifactReference]:
     base = Path(root)
     excluded = exclude or set()
     rows: list[ArtifactReference] = []
@@ -104,11 +104,20 @@ def build_generation_run_record(
     observed_metrics = dict(metrics or {})
     observed_metrics.setdefault(
         "build_duration_ms",
-        MetricObservation(name="build_duration_ms", value=duration_ms, unit="ms", source="monotonic_clock"),
+        MetricObservation(
+            name="build_duration_ms", value=duration_ms, unit="ms", source="monotonic_clock"
+        ),
     )
     observed_metrics.setdefault(
         "artifact_count",
-        MetricObservation(name="artifact_count", value=len(artifact_references(root, exclude={"generation_run.json", "build_manifest.json"})), unit="files", source="output_tree"),
+        MetricObservation(
+            name="artifact_count",
+            value=len(
+                artifact_references(root, exclude={"generation_run.json", "build_manifest.json"})
+            ),
+            unit="files",
+            source="output_tree",
+        ),
     )
     return GenerationRunRecord.create(
         run_id=run_id or f"run:{uuid.uuid4().hex}",

@@ -3,9 +3,9 @@ from __future__ import annotations
 import json
 import math
 from collections import defaultdict
+from collections.abc import Iterable
 from pathlib import Path
 from statistics import mean
-from typing import Iterable
 
 from ssm.auto_research.schemas import (
     AssayMetricResult,
@@ -57,7 +57,8 @@ def compare_releases(
         alpha=alpha,
         minimum_pairs=minimum_pairs,
         change_intent=change_intent,
-        slice_keys=slice_keys or ["domain_pack", "database", "tenancy", "workflow", "update_model", "rule_complexity"],
+        slice_keys=slice_keys
+        or ["domain_pack", "database", "tenancy", "workflow", "update_model", "rule_complexity"],
     )
     reasons: list[str] = []
     verdict = _overall_verdict(
@@ -96,13 +97,17 @@ def _discover_metrics(pairs: list[tuple[GenerationRunRecord, GenerationRunRecord
         common &= set(left.metrics) & set(right.metrics)
     numeric = []
     for name in sorted(common):
-        values = [pair[0].metrics[name].value for pair in pairs] + [pair[1].metrics[name].value for pair in pairs]
+        values = [pair[0].metrics[name].value for pair in pairs] + [
+            pair[1].metrics[name].value for pair in pairs
+        ]
         if all(isinstance(value, (int, float, bool)) for value in values if value is not None):
             numeric.append(name)
     return numeric
 
 
-def _numeric_pairs(metric: str, pairs: Iterable[tuple[GenerationRunRecord, GenerationRunRecord]]) -> list[tuple[float, float]]:
+def _numeric_pairs(
+    metric: str, pairs: Iterable[tuple[GenerationRunRecord, GenerationRunRecord]]
+) -> list[tuple[float, float]]:
     values: list[tuple[float, float]] = []
     for left, right in pairs:
         left_obs = left.metrics.get(metric)
@@ -128,7 +133,12 @@ def _assay_metric(
 ) -> AssayMetricResult:
     values = _numeric_pairs(metric, pairs)
     if not values:
-        return AssayMetricResult(metric=metric, pairs=0, method="paired-sign-test", notes=["No paired measured numeric observations."])
+        return AssayMetricResult(
+            metric=metric,
+            pairs=0,
+            method="paired-sign-test",
+            notes=["No paired measured numeric observations."],
+        )
     differences = [right - left for left, right in values]
     nonzero = [item for item in differences if item != 0]
     positive = sum(item > 0 for item in nonzero)
@@ -166,16 +176,24 @@ def _overall_verdict(
     reasons: list[str],
 ) -> str:
     if matched_pairs < minimum_pairs:
-        reasons.append(f"Only {matched_pairs} matched pairs are available; {minimum_pairs} are required.")
+        reasons.append(
+            f"Only {matched_pairs} matched pairs are available; {minimum_pairs} are required."
+        )
         return "INCONCLUSIVE"
     significant = [item for item in results if item.significant]
     if not significant:
-        reasons.append("No measured metric crossed the configured paired-test significance threshold.")
+        reasons.append(
+            "No measured metric crossed the configured paired-test significance threshold."
+        )
         return "NO_MATERIAL_CHANGE"
     if change_intent and change_intent.approved and _inside_envelope(significant, change_intent):
-        reasons.append("All statistically material effects remain inside the approved change-intent envelope.")
+        reasons.append(
+            "All statistically material effects remain inside the approved change-intent envelope."
+        )
         return "INTENDED_EVOLUTION"
-    reasons.append("At least one statistically material effect is not authorised by an approved envelope.")
+    reasons.append(
+        "At least one statistically material effect is not authorised by an approved envelope."
+    )
     return "REGRESSION"
 
 
@@ -187,32 +205,78 @@ def _inside_envelope(results: list[AssayMetricResult], contract: ChangeIntentCon
         envelope = envelopes.get(result.metric)
         if envelope is None or result.effect is None:
             return False
-        if envelope.maximum_absolute_change is not None and abs(result.effect) > envelope.maximum_absolute_change:
+        if (
+            envelope.maximum_absolute_change is not None
+            and abs(result.effect) > envelope.maximum_absolute_change
+        ):
             return False
-        if result.effect > 0 and envelope.maximum_increase is not None and result.effect > envelope.maximum_increase:
+        if (
+            result.effect > 0
+            and envelope.maximum_increase is not None
+            and result.effect > envelope.maximum_increase
+        ):
             return False
-        if result.effect < 0 and envelope.maximum_decrease is not None and abs(result.effect) > envelope.maximum_decrease:
+        if (
+            result.effect < 0
+            and envelope.maximum_decrease is not None
+            and abs(result.effect) > envelope.maximum_decrease
+        ):
             return False
-        if result.effect > 0 and envelope.maximum_increase is None and envelope.maximum_absolute_change is None:
+        if (
+            result.effect > 0
+            and envelope.maximum_increase is None
+            and envelope.maximum_absolute_change is None
+        ):
             return False
-        if result.effect < 0 and envelope.maximum_decrease is None and envelope.maximum_absolute_change is None:
+        if (
+            result.effect < 0
+            and envelope.maximum_decrease is None
+            and envelope.maximum_absolute_change is None
+        ):
             return False
     return True
 
 
-def _stage_attribution(pairs: list[tuple[GenerationRunRecord, GenerationRunRecord]]) -> StageAttribution:
-    order = ["requirements", "foundation", "architecture", "capabilities", "negotiation", "sml", "sir", "generated_tree", "quality_gates"]
+def _stage_attribution(
+    pairs: list[tuple[GenerationRunRecord, GenerationRunRecord]],
+) -> StageAttribution:
+    order = [
+        "requirements",
+        "foundation",
+        "architecture",
+        "capabilities",
+        "negotiation",
+        "sml",
+        "sir",
+        "generated_tree",
+        "quality_gates",
+    ]
     counts: dict[str, int] = defaultdict(int)
     for left, right in pairs:
-        stages = list(dict.fromkeys(order + sorted(set(left.stage_fingerprints) | set(right.stage_fingerprints))))
+        stages = list(
+            dict.fromkeys(
+                order + sorted(set(left.stage_fingerprints) | set(right.stage_fingerprints))
+            )
+        )
         for stage in stages:
             if left.stage_fingerprints.get(stage) != right.stage_fingerprints.get(stage):
                 counts[stage] += 1
                 break
     first = None
     if counts:
-        first = sorted(counts, key=lambda stage: (-counts[stage], order.index(stage) if stage in order else len(order), stage))[0]
-    return StageAttribution(first_changed_stage=first, changed_stage_counts=dict(sorted(counts.items())), examined_pairs=len(pairs))
+        first = sorted(
+            counts,
+            key=lambda stage: (
+                -counts[stage],
+                order.index(stage) if stage in order else len(order),
+                stage,
+            ),
+        )[0]
+    return StageAttribution(
+        first_changed_stage=first,
+        changed_stage_counts=dict(sorted(counts.items())),
+        examined_pairs=len(pairs),
+    )
 
 
 def _slice_results(
@@ -226,13 +290,36 @@ def _slice_results(
 ) -> list[SliceAssayResult]:
     results: list[SliceAssayResult] = []
     for slice_key in slice_keys:
-        values = sorted({left.slices.get(slice_key) for left, _ in pairs if left.slices.get(slice_key) is not None})
+        values = sorted(
+            {
+                left.slices.get(slice_key)
+                for left, _ in pairs
+                if left.slices.get(slice_key) is not None
+            }
+        )
         for value in values:
-            subset = [(left, right) for left, right in pairs if left.slices.get(slice_key) == value and right.slices.get(slice_key) == value]
+            subset = [
+                (left, right)
+                for left, right in pairs
+                if left.slices.get(slice_key) == value and right.slices.get(slice_key) == value
+            ]
             if not subset:
                 continue
             metric_results = [_assay_metric(metric, subset, alpha) for metric in metrics]
             reasons: list[str] = []
-            verdict = _overall_verdict(metric_results, matched_pairs=len(subset), minimum_pairs=minimum_pairs, change_intent=change_intent, reasons=reasons)
-            results.append(SliceAssayResult(slice_key=slice_key, slice_value=str(value), verdict=verdict, metrics=metric_results))
+            verdict = _overall_verdict(
+                metric_results,
+                matched_pairs=len(subset),
+                minimum_pairs=minimum_pairs,
+                change_intent=change_intent,
+                reasons=reasons,
+            )
+            results.append(
+                SliceAssayResult(
+                    slice_key=slice_key,
+                    slice_value=str(value),
+                    verdict=verdict,
+                    metrics=metric_results,
+                )
+            )
     return results

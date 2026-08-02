@@ -194,8 +194,16 @@ class BehaviouralContract(BaseModel):
     metadata: dict[str, str] = Field(default_factory=dict)
 
     @classmethod
-    def create(cls, *, name: str, rules: list[MetricRule], metadata: dict[str, str] | None = None) -> BehaviouralContract:
-        payload = {"schema_version": "1.0", "kind": "BehaviouralContract", "name": name, "rules": [item.model_dump(mode="json") for item in rules], "metadata": metadata or {}}
+    def create(
+        cls, *, name: str, rules: list[MetricRule], metadata: dict[str, str] | None = None
+    ) -> BehaviouralContract:
+        payload = {
+            "schema_version": "1.0",
+            "kind": "BehaviouralContract",
+            "name": name,
+            "rules": [item.model_dump(mode="json") for item in rules],
+            "metadata": metadata or {},
+        }
         payload["contract_id"] = "sha256:" + sha256_value(payload)
         return cls.model_validate(payload)
 

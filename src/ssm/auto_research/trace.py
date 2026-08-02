@@ -9,7 +9,7 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from ssm.auto_research.hashing import canonical_json_bytes, sha256_value
+from ssm.auto_research.hashing import sha256_value
 from ssm.auto_research.schemas import (
     DeterminismCensusReport,
     ReplayComparison,
@@ -168,7 +168,9 @@ class TraceRecorder:
         if self._task_output_set:
             raise TraceValidationError("Task output may be recorded at most once.")
         if output is None:
-            raise TraceValidationError("A null task output is treated as absent and cannot be recorded.")
+            raise TraceValidationError(
+                "A null task output is treated as absent and cannot be recorded."
+            )
         task_output = TraceTaskOutput(
             trace_id=self.trace_id,
             output=output,
