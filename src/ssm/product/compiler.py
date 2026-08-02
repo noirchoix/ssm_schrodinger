@@ -2,10 +2,16 @@ from __future__ import annotations
 
 import hashlib
 import json
+import time
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Literal
+from typing import Any, Callable, Literal, TypeVar
 
 from ssm.architecture.resolver import ConstrainedArchitectureResolver
+from ssm.auto_research.hashing import sha256_value
+from ssm.auto_research.records import build_generation_run_record, write_generation_run_record
+from ssm.auto_research.schemas import MetricObservation
+from ssm.auto_research.trace import TraceRecorder
 from ssm.capabilities.composer import CapabilityComposer
 from ssm.capabilities.schemas import CapabilityCompositionResult
 from ssm.certification.evaluator import SeniorGradeCertifier
@@ -23,6 +29,9 @@ from ssm.requirements.schemas import RequirementsIR
 
 class IntentCompilationError(SSMError):
     pass
+
+
+T = TypeVar("T")
 
 
 class SchrodingerProductCompiler:
@@ -44,16 +53,55 @@ class SchrodingerProductCompiler:
         source = Path(path)
         return self.collapse_text(source.read_text(encoding="utf-8"), source_name=str(source))
 
-    def collapse_text(self, text: str, source_name: str = "<memory>") -> CollapsePlan:
-        requirements = self.requirements_compiler.compile_text(text, source_name=source_name)
-        foundation = self.foundation_planner.plan(text)
+    def collapse_text(
+        self,
+        text: str,
+        source_name: str = "<memory>",
+        *,
+        trace_recorder: TraceRecorder | None = None,
+    ) -> CollapsePlan:
+        requirements = self._run_stage(
+            trace_recorder,
+            "requirements",
+            {"source_name": source_name, "source_sha256": sha256_value(text)},
+            lambda: self.requirements_compiler.compile_text(text, source_name=source_name),
+        )
+        foundation = self._run_stage(
+            trace_recorder,
+            "foundation",
+            {"requirements": requirements.semantic_fingerprint},
+            lambda: self.foundation_planner.plan(text),
+        )
         self._apply_requirements(foundation, requirements)
-        architecture = self.architecture_resolver.resolve(requirements, foundation)
-        capabilities = self.capability_composer.compose(requirements, foundation)
+        architecture = self._run_stage(
+            trace_recorder,
+            "architecture",
+            {
+                "requirements": requirements.semantic_fingerprint,
+                "foundation": sha256_value(foundation.model_dump(mode="json")),
+            },
+            lambda: self.architecture_resolver.resolve(requirements, foundation),
+        )
+        capabilities = self._run_stage(
+            trace_recorder,
+            "capabilities",
+            {"architecture": architecture.semantic_fingerprint},
+            lambda: self.capability_composer.compose(requirements, foundation),
+        )
         self._apply_capabilities(foundation, capabilities)
-        negotiation = self.negotiator.negotiate_plan(foundation)
-        sml_text = self.renderer.render(
-            foundation, architecture_pattern=architecture.selected_pattern
+        negotiation = self._run_stage(
+            trace_recorder,
+            "negotiation",
+            {"capabilities": capabilities.semantic_fingerprint},
+            lambda: self.negotiator.negotiate_plan(foundation),
+        )
+        sml_text = self._run_stage(
+            trace_recorder,
+            "sml",
+            {"architecture_pattern": architecture.selected_pattern},
+            lambda: self.renderer.render(
+                foundation, architecture_pattern=architecture.selected_pattern
+            ),
         )
         return CollapsePlan(
             requirements=requirements,
@@ -89,33 +137,75 @@ class SchrodingerProductCompiler:
         out_dir: str | Path | None = None,
         allow_partial: bool = False,
         certification_repetitions: int = 3,
+        task_id: str | None = None,
+        benchmark_case_id: str | None = None,
+        replicate_id: str = "0",
+        provider: str | None = None,
+        model: str | None = None,
+        scaffold_version: str | None = None,
+        prompt_version: str | None = None,
+        slices: dict[str, str] | None = None,
     ) -> ProductBuildResult:
-        collapse = self.collapse_text(text, source_name=source_name)
+        started_at = datetime.now(UTC)
+        started_monotonic = time.monotonic()
+        output = Path(out_dir) if out_dir is not None else None
+        trace_recorder = None
+        if output is not None:
+            output.mkdir(parents=True, exist_ok=True)
+            trace_recorder = TraceRecorder(
+                output / "generation_trace.jsonl",
+                task=task_id or source_name,
+                task_input={"source_sha256": sha256_value(text)},
+                attrs={
+                    "benchmark_case_id": benchmark_case_id or "",
+                    "replicate_id": replicate_id,
+                },
+            )
+        collapse = self.collapse_text(
+            text, source_name=source_name, trace_recorder=trace_recorder
+        )
         blocking = self._blocking_reasons(collapse)
         if blocking and not allow_partial:
+            if trace_recorder is not None:
+                trace_recorder.set_task_output({"status": "REJECTED", "blocking": blocking})
             raise IntentCompilationError("\n".join(blocking))
-        compile_result = self.compiler.compile_text(
-            collapse.sml_text, source_file=f"{source_name}::project.sml.md"
+        compile_result = self._run_stage(
+            trace_recorder,
+            "sir_and_target_generation",
+            {"sml_sha256": sha256_value(collapse.sml_text)},
+            lambda: self.compiler.compile_text(
+                collapse.sml_text, source_file=f"{source_name}::project.sml.md"
+            ),
         )
-        dependency_graph = self.graph_builder.build(
-            collapse.requirements,
-            collapse.foundation,
-            collapse.architecture,
-            collapse.capabilities,
-            collapse.sml_text,
-            compile_result,
+        dependency_graph = self._run_stage(
+            trace_recorder,
+            "dependency_graph",
+            {"generated_file_count": len(compile_result.files)},
+            lambda: self.graph_builder.build(
+                collapse.requirements,
+                collapse.foundation,
+                collapse.architecture,
+                collapse.capabilities,
+                collapse.sml_text,
+                compile_result,
+            ),
         )
-        certification = self.certifier.certify(
-            source_text=text,
-            source_name=source_name,
-            requirements=collapse.requirements,
-            foundation=collapse.foundation,
-            architecture=collapse.architecture,
-            capabilities=collapse.capabilities,
-            negotiation=collapse.negotiation,
-            sml_text=collapse.sml_text,
-            compile_result=compile_result,
-            repetitions=certification_repetitions,
+        certification = self._run_stage(
+            trace_recorder,
+            "certification",
+            {"repetitions": certification_repetitions},
+            lambda: self.certifier.certify(
+                source_text=text,
+                source_name=source_name,
+                requirements=collapse.requirements,
+                foundation=collapse.foundation,
+                architecture=collapse.architecture,
+                capabilities=collapse.capabilities,
+                negotiation=collapse.negotiation,
+                sml_text=collapse.sml_text,
+                compile_result=compile_result,
+                repetitions=certification_repetitions,
+            ),
         )
         warnings = sorted(
             set(certification.warnings)
@@ -130,9 +220,7 @@ class SchrodingerProductCompiler:
             else "ACCEPTED"
         )
         artifact_diff = None
-        output = Path(out_dir) if out_dir is not None else None
         if output is not None:
-            output.mkdir(parents=True, exist_ok=True)
             generated_dir = output / "generated_app"
             artifact_diff = self.writer.write(compile_result.files, generated_dir)
             self._write_json(output / "requirements_ir.json", collapse.requirements.model_dump())
@@ -148,6 +236,69 @@ class SchrodingerProductCompiler:
             self._write_json(output / "dependency_graph.json", dependency_graph.model_dump())
             self._write_json(output / "artifact_diff.json", artifact_diff.model_dump())
             self._write_json(output / "certification_report.json", certification.model_dump())
+            stage_fingerprints = self._stage_fingerprints(collapse, compile_result, certification)
+            duration_ms = int((time.monotonic() - started_monotonic) * 1000)
+            metrics = {
+                "compile_success": MetricObservation(
+                    name="compile_success", value=status != "REJECTED", source="compiler_status"
+                ),
+                "generated_file_count": MetricObservation(
+                    name="generated_file_count",
+                    value=len(compile_result.files),
+                    unit="files",
+                    source="compile_result",
+                ),
+                "semantic_variance_score": MetricObservation(
+                    name="semantic_variance_score",
+                    value=certification.variability.semantic_variance_score,
+                    source="certification_report",
+                ),
+                "repair_attempts": MetricObservation(
+                    name="repair_attempts", value=0, unit="attempts", source="offline_compiler"
+                ),
+                "requirements_coverage": MetricObservation(
+                    name="requirements_coverage",
+                    value=certification.metrics.requirements_coverage,
+                    source="certification_report",
+                ),
+                "capability_honesty": MetricObservation(
+                    name="capability_honesty",
+                    value=certification.metrics.capability_honesty,
+                    source="certification_report",
+                ),
+            }
+            inferred_slices = self._research_slices(collapse)
+            inferred_slices.update(slices or {})
+            if trace_recorder is not None:
+                trace_recorder.set_task_output(
+                    {
+                        "status": status,
+                        "generated_file_count": len(compile_result.files),
+                        "generated_tree_sha256": stage_fingerprints["generated_tree"],
+                    }
+                )
+            run_record = build_generation_run_record(
+                output=output,
+                source_text=text,
+                source_name=source_name,
+                status=status,
+                started_at=started_at,
+                duration_ms=duration_ms,
+                task_id=task_id,
+                benchmark_case_id=benchmark_case_id,
+                replicate_id=replicate_id,
+                stage_fingerprints=stage_fingerprints,
+                metrics=metrics,
+                trace_ids=[trace_recorder.trace_id] if trace_recorder is not None else [],
+                slices=inferred_slices,
+                warnings=warnings,
+                errors=blocking,
+                provider=provider,
+                model=model,
+                scaffold_version=scaffold_version,
+                prompt_version=prompt_version,
+            )
+            write_generation_run_record(output / "generation_run.json", run_record)
             self._write_build_manifest(output)
         return ProductBuildResult(
             status=status,
@@ -166,6 +317,67 @@ class SchrodingerProductCompiler:
             warnings=warnings,
             blocking_reasons=blocking,
         )
+
+    def _run_stage(
+        self,
+        recorder: TraceRecorder | None,
+        name: str,
+        input_value: object,
+        operation: Callable[[], T],
+    ) -> T:
+        if recorder is None:
+            return operation()
+        with recorder.span("memory_op", name, input_value=input_value) as span:
+            result = operation()
+            span.set_output(self._stage_output(result))
+            return result
+
+    def _stage_output(self, value: object) -> dict[str, object]:
+        if hasattr(value, "model_dump"):
+            payload = value.model_dump(mode="json")  # type: ignore[attr-defined]
+        elif isinstance(value, str):
+            payload = value
+        elif hasattr(value, "files"):
+            payload = {
+                "files": [
+                    {"path": item.path, "sha256": sha256_value(item.content)}
+                    for item in value.files  # type: ignore[attr-defined]
+                ]
+            }
+        else:
+            payload = str(value)
+        return {"sha256": sha256_value(payload)}
+
+    def _stage_fingerprints(
+        self, collapse: CollapsePlan, compile_result: object, certification: object
+    ) -> dict[str, str]:
+        sir = getattr(compile_result, "sir", None)
+        files = getattr(compile_result, "files", [])
+        return {
+            "requirements": collapse.requirements.semantic_fingerprint,
+            "foundation": sha256_value(collapse.foundation.model_dump(mode="json")),
+            "architecture": collapse.architecture.semantic_fingerprint,
+            "capabilities": collapse.capabilities.semantic_fingerprint,
+            "negotiation": sha256_value(collapse.negotiation.model_dump(mode="json")),
+            "sml": sha256_value(collapse.sml_text),
+            "sir": sha256_value(sir.model_dump(mode="json") if sir is not None else {}),
+            "generated_tree": sha256_value(
+                {item.path: sha256_value(item.content) for item in files}
+            ),
+            "quality_gates": sha256_value(certification.model_dump(mode="json")),  # type: ignore[attr-defined]
+        }
+
+    def _research_slices(self, collapse: CollapsePlan) -> dict[str, str]:
+        capability_ids = sorted(item.capability_id for item in collapse.capabilities.selected)
+        return {
+            "domain_pack": "+".join(sorted(collapse.negotiation.selected_domain_packs)) or "generic",
+            "database": collapse.foundation.database,
+            "tenancy": "enabled" if collapse.foundation.tenant_enabled else "disabled",
+            "workflow": "enabled" if collapse.foundation.workflows else "disabled",
+            "update_model": "present" if any(entity.name.endswith("Update") for entity in collapse.foundation.entities) else "absent",
+            "rule_complexity": "contextual_or_multi" if collapse.foundation.business_rules else "none",
+            "capabilities": "+".join(capability_ids),
+        }
 
     def _apply_requirements(
         self, foundation: AppFoundationPlan, requirements: RequirementsIR
@@ -274,7 +486,7 @@ class SchrodingerProductCompiler:
             relative = path.relative_to(output).as_posix()
             files[relative] = hashlib.sha256(path.read_bytes()).hexdigest()
         payload = {
-            "schema_version": "2.5",
+            "schema_version": "2.6",
             "kind": "SchrodingerBuildManifest",
             "hash_algorithm": "sha256",
             "files": files,

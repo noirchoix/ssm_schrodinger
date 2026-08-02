@@ -108,7 +108,7 @@ def evidence_record_files(
     generated_app_manifest = {
         "schema_version": "2.0",
         "kind": "GeneratedAppManifest",
-        "platform_release": "2.5.0-dev",
+        "platform_release": "2.6.0-auto-research-dev",
         "compiler": {
             "version": manifest.compiler_version,
             "target": manifest.target,
@@ -671,7 +671,12 @@ def _rbac_py(roles: list[dict[str, Any]]) -> str:
         "ROLE_PERMISSIONS: dict[str, set[str]] = {",
     ]
     for name, permissions in sorted(role_map.items()):
-        lines.append(f"    {name!r}: {set(permissions)!r},")
+        permission_literal = (
+            "{" + ", ".join(repr(permission) for permission in permissions) + "}"
+            if permissions
+            else "set()"
+        )
+        lines.append(f"    {name!r}: {permission_literal},")
     lines.extend(
         [
             "}",
@@ -1651,7 +1656,7 @@ def _admin_ui_files(graph: SIRGraph) -> list[GeneratedFile]:
     package_json = json.dumps(
         {
             "name": "generated-ssm-admin",
-            "version": "2.5.0",
+            "version": "2.6.0",
             "private": True,
             "type": "module",
             "engines": {"node": ">=20.19"},

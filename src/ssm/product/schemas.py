@@ -13,7 +13,7 @@ from ssm.requirements.schemas import RequirementsIR
 
 
 class CollapsePlan(BaseModel):
-    schema_version: str = "2.5"
+    schema_version: str = "2.6"
     kind: str = "SchrodingerCollapsePlan"
     requirements: RequirementsIR
     foundation: AppFoundationPlan
@@ -24,7 +24,7 @@ class CollapsePlan(BaseModel):
 
 
 class ProductBuildResult(BaseModel):
-    schema_version: str = "2.5"
+    schema_version: str = "2.6"
     kind: str = "SchrodingerProductBuild"
     status: Literal["ACCEPTED", "CONDITIONAL", "REJECTED"]
     out_dir: str | None = None

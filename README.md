@@ -1,6 +1,6 @@
-# Semantic Software Markup Compiler — V2.5.0-dev Schrödinger Collapse Platform
+# SSM Schrödinger Auto Research — V2.6.0-dev
 
-SSM V2.5 extends the validated V2.0 deterministic compiler with a high-level uncertainty-collapse pipeline:
+SSM V2.6 preserves the semantic product compiler and adds the Auto-inspired reproducibility and evolution-assurance control planes specified by the three-way integration plan.
 
 ```text
 README / prompt / PRD
@@ -10,28 +10,53 @@ README / prompt / PRD
 → capability composition
 → SML / SIR / logic resolution
 → deterministic FastAPI generation
-→ incremental artifact evidence
-→ repeated-run variability certification
+→ generated product and evidence
+→ canonical GenerationRunRecord + strict trace
+→ behavioural contract / immutable eval run
+→ paired release assay + four-state verdict
 ```
 
-The LLM remains outside the final source-generation authority. Natural-language inputs are normalized into typed, inspectable artifacts before the existing SML/SIR compiler is invoked. Unsupported, ambiguous, contradictory, inferred, scaffold-only, and contract-only requirements remain explicit.
+The compiler remains the sole owner of product semantics and final source generation. The research layer observes and compares behaviour; it may block or qualify promotion, but it cannot silently mutate SML, SIR, target-pack rules, or its own baseline.
 
-## V2.5 quick start
+## Implemented research boundary
+
+- Canonical, content-addressed `generation_run.json` records.
+- Strict append-only `generation_trace.jsonl` traces for compiler stages and online model calls.
+- Replay comparison and witnessed determinism census.
+- Versioned behavioural contracts with `PASS`, `FAIL`, and `UNCHECKED`.
+- Content-addressed evaluation runs and local immutable registry storage.
+- Frozen, content-addressed **SSM-Bench v1** with 30 stratified intents.
+- Paired exact sign-test release comparison.
+- Four-state verdicts: no material change, intended evolution, regression, or inconclusive.
+- Approved change-intent envelopes, labelled-slice analysis, and first-changed-stage attribution.
+
+Sequential live-stream monitoring, unknown-slice discovery, the Auto guard/deopt ratchet, and WASM cognition binaries remain explicit extensions rather than claims of this release.
+
+## Quick start
 
 ```bash
 python -m pip install -e ".[dev]"
-python -m ssm.cli.main requirements --file examples/intent_inputs/hr_leave_readme.md
-python -m ssm.cli.main collapse-plan --file examples/intent_inputs/hr_leave_readme.md
-python -m ssm.cli.main compile-intent   --file examples/intent_inputs/hr_leave_readme.md   --out build/product
+python -m ssm.cli.main research-bench-validate benchmarks/ssm_bench_v1/manifest.json
+python -m ssm.cli.main research-run \
+  --file benchmarks/ssm_bench_v1/intents/ssmb-005-hr-leave-approval.md \
+  --out build/research/baseline/SSMB-005/run-00 \
+  --task-id ssm-bench-v1 \
+  --benchmark-case-id SSMB-005 \
+  --replicate-id 00
 ```
 
-Run the V2.5 collapse gate:
+Run the integrated development gate:
 
 ```bash
-./scripts/test_v25_e2e.sh
+./scripts/test_auto_research_e2e.sh
 ```
 
-See `docs/V2_1_TO_V2_5_SCHRODINGER_ROADMAP_IMPLEMENTATION.md` for the implemented boundary and limitations.
+See:
+
+- `docs/AUTO_RESEARCH_INTEGRATION.md`
+- `docs/AUTO_RESEARCH_SCHEMA_REFERENCE.md`
+- `docs/reference/SSM_Schrodinger_Auto_Research_Three_Way_Integration_Plan.pdf`
+- `docs/V2_1_TO_V2_5_SCHRODINGER_ROADMAP_IMPLEMENTATION.md` for the preserved compiler foundation.
 
 ## Preserved V2.0 platform gate
 

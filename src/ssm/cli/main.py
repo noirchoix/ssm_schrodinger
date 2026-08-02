@@ -11,6 +11,14 @@ from ssm.agents.online import OnlineDraftService
 from ssm.agents.repair_agent import RepairAgent
 from ssm.agents.settings import OnlineAgentSettings
 from ssm.agents.sml_agent import SMLGeneratorAgent
+from ssm.auto_research.assay import compare_releases, load_run_records
+from ssm.auto_research.bench import validate_benchmark_manifest
+from ssm.auto_research.contracts import verify_contract
+from ssm.auto_research.hashing import write_canonical_json
+from ssm.auto_research.records import load_generation_run_record
+from ssm.auto_research.registry import ContentAddressedRegistry
+from ssm.auto_research.schemas import BehaviouralContract, ChangeIntentContract
+from ssm.auto_research.trace import compare_traces, determinism_census
 from ssm.errors import SSMError
 from ssm.evidence import validate_evidence_directory
 from ssm.foundation.builder import OnlineBuildService
@@ -147,6 +155,78 @@ def main(argv: list[str] | None = None) -> int:
     certify_cmd.add_argument("--out")
     certify_cmd.add_argument("--allow-partial", action="store_true")
     certify_cmd.add_argument("--certification-runs", type=int, default=3)
+
+    research_run_cmd = sub.add_parser(
+        "research-run",
+        help="Compile one instrumented SSM run and emit a canonical GenerationRunRecord.",
+    )
+    research_run_source = research_run_cmd.add_mutually_exclusive_group(required=True)
+    research_run_source.add_argument("--file")
+    research_run_source.add_argument("--prompt")
+    research_run_cmd.add_argument("--out", required=True)
+    research_run_cmd.add_argument("--task-id", required=True)
+    research_run_cmd.add_argument("--benchmark-case-id")
+    research_run_cmd.add_argument("--replicate-id", default="0")
+    research_run_cmd.add_argument("--provider")
+    research_run_cmd.add_argument("--model")
+    research_run_cmd.add_argument("--scaffold-version")
+    research_run_cmd.add_argument("--prompt-version")
+    research_run_cmd.add_argument("--slice", action="append", default=[])
+    research_run_cmd.add_argument("--allow-partial", action="store_true")
+    research_run_cmd.add_argument("--certification-runs", type=int, default=3)
+
+    trace_report_cmd = sub.add_parser(
+        "research-trace-report", help="Compute an Auto-style determinism census over traces."
+    )
+    trace_report_cmd.add_argument("--trace", action="append", required=True)
+    trace_report_cmd.add_argument("--out")
+
+    replay_cmd = sub.add_parser(
+        "research-replay-compare", help="Compare two recorded effectful trace sequences."
+    )
+    replay_cmd.add_argument("baseline")
+    replay_cmd.add_argument("candidate")
+    replay_cmd.add_argument("--out")
+
+    contract_cmd = sub.add_parser(
+        "research-contract-verify",
+        help="Verify one GenerationRunRecord against a versioned behavioural contract.",
+    )
+    contract_cmd.add_argument("--contract", required=True)
+    contract_cmd.add_argument("--run", required=True)
+    contract_cmd.add_argument("--out", required=True)
+    contract_cmd.add_argument("--registry")
+
+    registry_add_cmd = sub.add_parser(
+        "research-registry-add", help="Add an immutable JSON record to the local registry."
+    )
+    registry_add_cmd.add_argument("file")
+    registry_add_cmd.add_argument("--registry", required=True)
+    registry_add_cmd.add_argument("--key-id")
+
+    registry_verify_cmd = sub.add_parser(
+        "research-registry-verify", help="Verify a content-addressed registry record."
+    )
+    registry_verify_cmd.add_argument("digest")
+    registry_verify_cmd.add_argument("--registry", required=True)
+
+    bench_cmd = sub.add_parser(
+        "research-bench-validate", help="Validate the frozen SSM-Bench manifest and corpus digest."
+    )
+    bench_cmd.add_argument("manifest")
+
+    assay_cmd = sub.add_parser(
+        "research-assay",
+        help="Compare baseline and candidate GenerationRunRecord sets with a four-state verdict.",
+    )
+    assay_cmd.add_argument("--baseline", required=True)
+    assay_cmd.add_argument("--candidate", required=True)
+    assay_cmd.add_argument("--metric", action="append")
+    assay_cmd.add_argument("--alpha", type=float, default=0.05)
+    assay_cmd.add_argument("--minimum-pairs", type=int, default=5)
+    assay_cmd.add_argument("--change-intent")
+    assay_cmd.add_argument("--slice-key", action="append")
+    assay_cmd.add_argument("--out", required=True)
 
     args = parser.parse_args(argv)
     compiler = SSMCompiler()
@@ -303,6 +383,92 @@ def main(argv: list[str] | None = None) -> int:
             patch = RepairAgent().patch_missing_schema(args.schema)
             print(patch.model_dump_json(indent=2))
             return 0
+        if args.command == "research-run":
+            source_text = Path(args.file).read_text(encoding="utf-8") if args.file else args.prompt
+            source_name = args.file or "<prompt>"
+            slices: dict[str, str] = {}
+            for item in args.slice:
+                if "=" not in item:
+                    raise ValueError(f"Invalid --slice value {item!r}; expected key=value.")
+                key, value = item.split("=", 1)
+                slices[key.strip()] = value.strip()
+            result = SchrodingerProductCompiler().build_text(
+                source_text,
+                source_name=source_name,
+                out_dir=args.out,
+                allow_partial=args.allow_partial,
+                certification_repetitions=args.certification_runs,
+                task_id=args.task_id,
+                benchmark_case_id=args.benchmark_case_id,
+                replicate_id=args.replicate_id,
+                provider=args.provider,
+                model=args.model,
+                scaffold_version=args.scaffold_version,
+                prompt_version=args.prompt_version,
+                slices=slices,
+            )
+            run_path = Path(args.out) / "generation_run.json"
+            run = load_generation_run_record(run_path)
+            print(json.dumps({"success": result.status != "REJECTED", "status": result.status, "run_record": str(run_path), "record_id": run.record_id, "trace_ids": run.trace_ids}, indent=2))
+            return 0 if result.status != "REJECTED" else 2
+        if args.command == "research-trace-report":
+            report = determinism_census(args.trace)
+            output = report.model_dump(mode="json")
+            if args.out:
+                write_canonical_json(args.out, output)
+            print(report.model_dump_json(indent=2))
+            return 0
+        if args.command == "research-replay-compare":
+            report = compare_traces(args.baseline, args.candidate)
+            if args.out:
+                write_canonical_json(args.out, report.model_dump(mode="json"))
+            print(report.model_dump_json(indent=2))
+            return 0 if report.equivalent else 2
+        if args.command == "research-contract-verify":
+            contract = BehaviouralContract.model_validate_json(Path(args.contract).read_text(encoding="utf-8"))
+            run = load_generation_run_record(args.run)
+            evaluation = verify_contract(contract, run)
+            write_canonical_json(args.out, evaluation.model_dump(mode="json"))
+            registry_entry = None
+            if args.registry:
+                registry_entry = ContentAddressedRegistry(args.registry).add(evaluation.model_dump(mode="json"))
+            print(json.dumps({"verdict": evaluation.verdict, "eval_run_id": evaluation.eval_run_id, "out": args.out, "registry": registry_entry.model_dump(mode="json") if registry_entry else None}, indent=2))
+            return 0 if evaluation.verdict == "PASS" else 2
+        if args.command == "research-registry-add":
+            payload = json.loads(Path(args.file).read_text(encoding="utf-8"))
+            if not isinstance(payload, dict):
+                raise ValueError("Registry input must contain a JSON object.")
+            import os
+            key = os.getenv("SSM_RESEARCH_REGISTRY_KEY")
+            entry = ContentAddressedRegistry(args.registry).add(payload, signing_key=key, key_id=args.key_id)
+            print(entry.model_dump_json(indent=2))
+            return 0
+        if args.command == "research-registry-verify":
+            valid = ContentAddressedRegistry(args.registry).verify(args.digest)
+            print(json.dumps({"digest": args.digest, "valid": valid}, indent=2))
+            return 0 if valid else 2
+        if args.command == "research-bench-validate":
+            manifest = validate_benchmark_manifest(args.manifest)
+            print(json.dumps({"valid": True, "benchmark_id": manifest.benchmark_id, "cases": len(manifest.cases), "corpus_sha256": manifest.corpus_sha256}, indent=2))
+            return 0
+        if args.command == "research-assay":
+            baseline = load_run_records(args.baseline)
+            candidate = load_run_records(args.candidate)
+            change_intent = None
+            if args.change_intent:
+                change_intent = ChangeIntentContract.model_validate_json(Path(args.change_intent).read_text(encoding="utf-8"))
+            report = compare_releases(
+                baseline,
+                candidate,
+                metrics=args.metric,
+                alpha=args.alpha,
+                minimum_pairs=args.minimum_pairs,
+                change_intent=change_intent,
+                slice_keys=args.slice_key,
+            )
+            write_canonical_json(args.out, report.model_dump(mode="json"))
+            print(report.model_dump_json(indent=2))
+            return 2 if report.verdict in {"REGRESSION", "INCONCLUSIVE"} else 0
         if args.command == "requirements":
             if args.file:
                 requirements_ir = IntentRequirementsCompiler().compile_file(args.file)

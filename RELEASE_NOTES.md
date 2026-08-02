@@ -1,3 +1,11 @@
+# SSM V2.6.0-dev Auto Research Notes
+
+This development release upgrades the V2.5 Schrödinger semantic compiler with a separate Auto-inspired observation and evolution-assurance control plane. It implements canonical run records, strict traces, determinism analysis, behavioural contracts, immutable evaluation evidence, a frozen benchmark corpus, and an offline four-state release assay without transferring source-generation authority away from the compiler.
+
+The research assay is intentionally bounded: its current paired exact sign test is suitable for the first offline study and auditable release experiments, while sequential production monitoring and unknown-slice discovery remain future research work.
+
+---
+
 # SSM V2.0.0-dev Product Platform Notes
 
 `2.0.0.dev0` is the acceptance branch for the product-platform boundary. It combines the locked general-domain foundation with schema-2.0 release evidence, tenant-enforced SaaS repositories, RBAC, database audit persistence, persistent workflow/business-rule runtime, bounded online repair validation, and a production-buildable React/Vite admin client.

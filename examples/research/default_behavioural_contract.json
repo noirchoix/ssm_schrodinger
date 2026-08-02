@@ -1,0 +1,32 @@
+{
+  "contract_id": "sha256:66b9396f4e61d15089f46239a04ea0f4772be93eabba78b5da62e00fc7388265",
+  "kind": "BehaviouralContract",
+  "metadata": {
+    "profile": "ssm-auto-research-v1"
+  },
+  "name": "Default supported-profile generation contract",
+  "rules": [
+    {
+      "description": "Compilation must succeed.",
+      "metric": "compile_success",
+      "operator": "eq",
+      "required": true,
+      "threshold": true
+    },
+    {
+      "description": "Repeated deterministic collapse must remain semantically stable.",
+      "metric": "semantic_variance_score",
+      "operator": "eq",
+      "required": true,
+      "threshold": 0.0
+    },
+    {
+      "description": "Unsupported or scaffold capabilities remain explicit.",
+      "metric": "capability_honesty",
+      "operator": "ge",
+      "required": true,
+      "threshold": 1.0
+    }
+  ],
+  "schema_version": "1.0"
+}

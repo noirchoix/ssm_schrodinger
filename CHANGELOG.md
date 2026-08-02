@@ -1,5 +1,18 @@
 # Changelog
 
+## v2.6.0-dev — SSM Schrödinger Auto Research
+
+- Restored the certified deterministic FastAPI target omitted from the uploaded GitHub archive.
+- Added canonical content-addressed `GenerationRunRecord` emission for offline and online builds.
+- Added strict Auto-style JSONL tracing for compiler stages and model calls.
+- Added replay comparison and witnessed determinism census.
+- Added behavioural contracts with three-valued verification and content-addressed evaluation runs.
+- Added a local immutable SHA-256 registry with optional HMAC integrity signatures.
+- Added paired release assays with four-state verdicts, change-intent envelopes, slice analysis, and stage attribution.
+- Added frozen content-addressed SSM-Bench v1 with 30 stratified application intents.
+- Added research CLI commands, schema documentation, examples, and an integrated E2E gate.
+- Kept sequential production monitoring, unknown-slice discovery, conformal guard/deopt, and WASM cognition binaries explicitly deferred.
+
 ## v2.0.0-dev — Product-platform acceptance branch
 
 ### Added

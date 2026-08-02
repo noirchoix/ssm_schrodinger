@@ -34,7 +34,7 @@ class SeniorGradeMetrics(BaseModel):
 
 
 class CertificationReport(BaseModel):
-    schema_version: str = "2.5"
+    schema_version: str = "2.6"
     kind: str = "SeniorGradeCertificationReport"
     status: Literal[
         "CERTIFIED_SUPPORTED_PROFILE",

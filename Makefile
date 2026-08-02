@@ -1,4 +1,4 @@
-.PHONY: test lint format-check typecheck security audit quality coverage compile-examples generated-quality online-mock online-mock-quality v20-e2e v20-e2e-live clean
+.PHONY: test lint format-check typecheck security audit quality coverage compile-examples generated-quality online-mock online-mock-quality v20-e2e v20-e2e-live auto-research-e2e clean
 
 test:
 	pytest -q
@@ -47,6 +47,9 @@ v20-e2e:
 
 v20-e2e-live:
 	RUN_DEEPSEEK_LIVE=1 ./scripts/test_v20_e2e.sh
+
+auto-research-e2e:
+	./scripts/test_auto_research_e2e.sh
 
 clean:
 	rm -rf build .pytest_cache .ruff_cache .mypy_cache htmlcov .coverage

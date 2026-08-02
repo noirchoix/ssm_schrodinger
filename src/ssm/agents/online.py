@@ -21,6 +21,7 @@ from ssm.agents.providers import (
 )
 from ssm.agents.schemas import SMLDocumentDraft
 from ssm.agents.settings import OnlineAgentSettings, SecretRedactor
+from ssm.auto_research.trace import TraceRecorder
 from ssm.errors import SSMError
 from ssm.pipeline import SSMCompiler
 
@@ -76,11 +77,13 @@ class OnlineDraftService:
         provider: LLMProvider | None = None,
         compiler: SSMCompiler | None = None,
         audit_logger: OnlineAgentAuditLogger | None = None,
+        trace_recorder: TraceRecorder | None = None,
     ):
         self.settings = settings
         self.provider = provider or make_generation_provider(settings)
         self.compiler = compiler or SSMCompiler()
         self.audit_logger = audit_logger or OnlineAgentAuditLogger(settings)
+        self.trace_recorder = trace_recorder
 
     @classmethod
     def from_env(cls, settings: OnlineAgentSettings | None = None) -> OnlineDraftService:
@@ -96,8 +99,22 @@ class OnlineDraftService:
             started = time.time()
             try:
                 response = self.provider.generate(messages)
-                draft = self._parse_and_validate(response.text)
                 elapsed_ms = int((time.time() - started) * 1000)
+                if self.trace_recorder is not None:
+                    self.trace_recorder.record(
+                        "model_call",
+                        f"{response.provider}:{response.model}",
+                        input_value={
+                            "prompt_sha256": _sha256(prompt),
+                            "attempt": attempt + 1,
+                        },
+                        output={
+                            "response_sha256": _sha256(response.text),
+                            "usage": response.usage.model_dump(mode="json"),
+                        },
+                        duration_ms=elapsed_ms,
+                    )
+                draft = self._parse_and_validate(response.text)
                 draft.provenance.append(f"online:{response.provider}:{response.model}:run:{run_id}")
                 self.audit_logger.write(
                     {
@@ -117,6 +134,23 @@ class OnlineDraftService:
                 return draft
             except (ProviderResponseError, ValidationError, SSMError, ValueError) as exc:
                 last_error = str(exc)
+                if self.trace_recorder is not None:
+                    self.trace_recorder.record(
+                        "model_call",
+                        f"{getattr(self.provider, 'name', 'unknown')}:{getattr(self.provider, 'model', 'unknown')}",
+                        input_value={
+                            "prompt_sha256": _sha256(prompt),
+                            "attempt": attempt + 1,
+                        },
+                        error=last_error,
+                        duration_ms=int((time.time() - started) * 1000),
+                    )
+                    self.trace_recorder.record(
+                        "branch",
+                        "online_draft_retry",
+                        input_value={"attempt": attempt + 1},
+                        output={"retry": attempt < self.settings.llm_max_retries},
+                    )
                 self.audit_logger.write(
                     {
                         "event": "online_draft_retryable_validation_error",

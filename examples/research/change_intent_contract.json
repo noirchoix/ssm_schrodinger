@@ -1,0 +1,36 @@
+{
+  "accepted_tradeoffs": [
+    {
+      "maximum_absolute_change": null,
+      "maximum_decrease": 5000.0,
+      "maximum_increase": 100.0,
+      "metric": "build_duration_ms"
+    },
+    {
+      "maximum_absolute_change": 3.0,
+      "maximum_decrease": null,
+      "maximum_increase": null,
+      "metric": "generated_file_count"
+    }
+  ],
+  "affected_slices": {
+    "domain_pack": [
+      "generic_crud",
+      "workflow_approval"
+    ]
+  },
+  "approved": false,
+  "baseline_release": "2.6.0.dev0-baseline",
+  "candidate_release": "2.6.0.dev0-candidate",
+  "change_id": "CHANGE-EXAMPLE-001",
+  "kind": "ChangeIntentContract",
+  "objectives": [
+    "Reduce build latency without weakening correctness or capability honesty."
+  ],
+  "protected_metrics": [
+    "compile_success",
+    "semantic_variance_score",
+    "capability_honesty"
+  ],
+  "schema_version": "1.0"
+}

@@ -1,0 +1,400 @@
+{
+  "benchmark_id": "sha256:840a6ad178ed7c4c2d157e0ccfc0d1f74fb848201e73375f015478b57da375fe",
+  "cases": [
+    {
+      "case_id": "SSMB-001",
+      "intent_path": "intents/ssmb-001-inventory-crud-postgresql.md",
+      "slices": {
+        "database": "PostgreSQL",
+        "domain_pack": "inventory",
+        "rule_complexity": "local",
+        "tenancy": "disabled",
+        "update_model": "present",
+        "workflow": "disabled"
+      },
+      "title": "Inventory CRUD PostgreSQL"
+    },
+    {
+      "case_id": "SSMB-002",
+      "intent_path": "intents/ssmb-002-inventory-crud-inmemory.md",
+      "slices": {
+        "database": "InMemory",
+        "domain_pack": "inventory",
+        "rule_complexity": "multi_field",
+        "tenancy": "disabled",
+        "update_model": "present",
+        "workflow": "disabled"
+      },
+      "title": "Inventory CRUD InMemory"
+    },
+    {
+      "case_id": "SSMB-003",
+      "intent_path": "intents/ssmb-003-todo-minimal.md",
+      "slices": {
+        "database": "InMemory",
+        "domain_pack": "generic_crud",
+        "rule_complexity": "none",
+        "tenancy": "disabled",
+        "update_model": "present",
+        "workflow": "disabled"
+      },
+      "title": "Todo Minimal"
+    },
+    {
+      "case_id": "SSMB-004",
+      "intent_path": "intents/ssmb-004-todo-multi-tenant.md",
+      "slices": {
+        "database": "PostgreSQL",
+        "domain_pack": "generic_crud",
+        "rule_complexity": "none",
+        "tenancy": "enabled",
+        "update_model": "present",
+        "workflow": "disabled"
+      },
+      "title": "Todo Multi Tenant"
+    },
+    {
+      "case_id": "SSMB-005",
+      "intent_path": "intents/ssmb-005-hr-leave-approval.md",
+      "slices": {
+        "database": "PostgreSQL",
+        "domain_pack": "hr+workflow_approval",
+        "rule_complexity": "contextual",
+        "tenancy": "enabled",
+        "update_model": "present",
+        "workflow": "enabled"
+      },
+      "title": "HR Leave Approval"
+    },
+    {
+      "case_id": "SSMB-006",
+      "intent_path": "intents/ssmb-006-hr-leave-inmemory.md",
+      "slices": {
+        "database": "InMemory",
+        "domain_pack": "hr+workflow_approval",
+        "rule_complexity": "multi_field",
+        "tenancy": "disabled",
+        "update_model": "present",
+        "workflow": "enabled"
+      },
+      "title": "HR Leave InMemory"
+    },
+    {
+      "case_id": "SSMB-007",
+      "intent_path": "intents/ssmb-007-expense-approval.md",
+      "slices": {
+        "database": "PostgreSQL",
+        "domain_pack": "expense+workflow_approval",
+        "rule_complexity": "local",
+        "tenancy": "enabled",
+        "update_model": "present",
+        "workflow": "enabled"
+      },
+      "title": "Expense Approval"
+    },
+    {
+      "case_id": "SSMB-008",
+      "intent_path": "intents/ssmb-008-expense-limit-context.md",
+      "slices": {
+        "database": "PostgreSQL",
+        "domain_pack": "expense+workflow_approval",
+        "rule_complexity": "contextual",
+        "tenancy": "enabled",
+        "update_model": "present",
+        "workflow": "enabled"
+      },
+      "title": "Expense Limit Context"
+    },
+    {
+      "case_id": "SSMB-009",
+      "intent_path": "intents/ssmb-009-crm-pipeline.md",
+      "slices": {
+        "database": "PostgreSQL",
+        "domain_pack": "crm",
+        "rule_complexity": "none",
+        "tenancy": "enabled",
+        "update_model": "present",
+        "workflow": "enabled"
+      },
+      "title": "CRM Pipeline"
+    },
+    {
+      "case_id": "SSMB-010",
+      "intent_path": "intents/ssmb-010-crm-inmemory.md",
+      "slices": {
+        "database": "InMemory",
+        "domain_pack": "crm",
+        "rule_complexity": "multi_field",
+        "tenancy": "disabled",
+        "update_model": "present",
+        "workflow": "disabled"
+      },
+      "title": "CRM InMemory"
+    },
+    {
+      "case_id": "SSMB-011",
+      "intent_path": "intents/ssmb-011-ticketing-sla.md",
+      "slices": {
+        "database": "PostgreSQL",
+        "domain_pack": "ticketing",
+        "rule_complexity": "none",
+        "tenancy": "enabled",
+        "update_model": "present",
+        "workflow": "enabled"
+      },
+      "title": "Ticketing SLA"
+    },
+    {
+      "case_id": "SSMB-012",
+      "intent_path": "intents/ssmb-012-ticketing-assignment-context.md",
+      "slices": {
+        "database": "PostgreSQL",
+        "domain_pack": "ticketing+workflow_approval",
+        "rule_complexity": "contextual",
+        "tenancy": "enabled",
+        "update_model": "present",
+        "workflow": "enabled"
+      },
+      "title": "Ticketing Assignment Context"
+    },
+    {
+      "case_id": "SSMB-013",
+      "intent_path": "intents/ssmb-013-school-records.md",
+      "slices": {
+        "database": "PostgreSQL",
+        "domain_pack": "school",
+        "rule_complexity": "none",
+        "tenancy": "enabled",
+        "update_model": "present",
+        "workflow": "disabled"
+      },
+      "title": "School Records"
+    },
+    {
+      "case_id": "SSMB-014",
+      "intent_path": "intents/ssmb-014-school-enrollment-dates.md",
+      "slices": {
+        "database": "InMemory",
+        "domain_pack": "school",
+        "rule_complexity": "multi_field",
+        "tenancy": "disabled",
+        "update_model": "present",
+        "workflow": "disabled"
+      },
+      "title": "School Enrollment Dates"
+    },
+    {
+      "case_id": "SSMB-015",
+      "intent_path": "intents/ssmb-015-procurement-purchase-order.md",
+      "slices": {
+        "database": "PostgreSQL",
+        "domain_pack": "procurement+workflow_approval",
+        "rule_complexity": "none",
+        "tenancy": "enabled",
+        "update_model": "present",
+        "workflow": "enabled"
+      },
+      "title": "Procurement Purchase Order"
+    },
+    {
+      "case_id": "SSMB-016",
+      "intent_path": "intents/ssmb-016-procurement-budget-context.md",
+      "slices": {
+        "database": "PostgreSQL",
+        "domain_pack": "procurement+workflow_approval",
+        "rule_complexity": "contextual",
+        "tenancy": "enabled",
+        "update_model": "present",
+        "workflow": "enabled"
+      },
+      "title": "Procurement Budget Context"
+    },
+    {
+      "case_id": "SSMB-017",
+      "intent_path": "intents/ssmb-017-asset-register.md",
+      "slices": {
+        "database": "PostgreSQL",
+        "domain_pack": "generic_crud",
+        "rule_complexity": "none",
+        "tenancy": "disabled",
+        "update_model": "present",
+        "workflow": "disabled"
+      },
+      "title": "Asset Register"
+    },
+    {
+      "case_id": "SSMB-018",
+      "intent_path": "intents/ssmb-018-asset-transfer-workflow.md",
+      "slices": {
+        "database": "PostgreSQL",
+        "domain_pack": "generic_crud+workflow_approval",
+        "rule_complexity": "contextual",
+        "tenancy": "enabled",
+        "update_model": "present",
+        "workflow": "enabled"
+      },
+      "title": "Asset Transfer Workflow"
+    },
+    {
+      "case_id": "SSMB-019",
+      "intent_path": "intents/ssmb-019-clinic-appointment.md",
+      "slices": {
+        "database": "PostgreSQL",
+        "domain_pack": "generic_crud",
+        "rule_complexity": "multi_field",
+        "tenancy": "disabled",
+        "update_model": "present",
+        "workflow": "disabled"
+      },
+      "title": "Clinic Appointment"
+    },
+    {
+      "case_id": "SSMB-020",
+      "intent_path": "intents/ssmb-020-clinic-inmemory.md",
+      "slices": {
+        "database": "InMemory",
+        "domain_pack": "generic_crud",
+        "rule_complexity": "local",
+        "tenancy": "disabled",
+        "update_model": "present",
+        "workflow": "disabled"
+      },
+      "title": "Clinic InMemory"
+    },
+    {
+      "case_id": "SSMB-021",
+      "intent_path": "intents/ssmb-021-warehouse-receiving.md",
+      "slices": {
+        "database": "PostgreSQL",
+        "domain_pack": "inventory",
+        "rule_complexity": "local",
+        "tenancy": "enabled",
+        "update_model": "present",
+        "workflow": "disabled"
+      },
+      "title": "Warehouse Receiving"
+    },
+    {
+      "case_id": "SSMB-022",
+      "intent_path": "intents/ssmb-022-warehouse-inspection.md",
+      "slices": {
+        "database": "PostgreSQL",
+        "domain_pack": "inventory+workflow_approval",
+        "rule_complexity": "contextual",
+        "tenancy": "enabled",
+        "update_model": "present",
+        "workflow": "enabled"
+      },
+      "title": "Warehouse Inspection"
+    },
+    {
+      "case_id": "SSMB-023",
+      "intent_path": "intents/ssmb-023-project-risk-register.md",
+      "slices": {
+        "database": "PostgreSQL",
+        "domain_pack": "generic_crud",
+        "rule_complexity": "local",
+        "tenancy": "enabled",
+        "update_model": "present",
+        "workflow": "disabled"
+      },
+      "title": "Project Risk Register"
+    },
+    {
+      "case_id": "SSMB-024",
+      "intent_path": "intents/ssmb-024-project-change-request.md",
+      "slices": {
+        "database": "PostgreSQL",
+        "domain_pack": "workflow_approval",
+        "rule_complexity": "multi_field",
+        "tenancy": "enabled",
+        "update_model": "present",
+        "workflow": "enabled"
+      },
+      "title": "Project Change Request"
+    },
+    {
+      "case_id": "SSMB-025",
+      "intent_path": "intents/ssmb-025-document-register.md",
+      "slices": {
+        "database": "InMemory",
+        "domain_pack": "generic_crud",
+        "rule_complexity": "none",
+        "tenancy": "disabled",
+        "update_model": "present",
+        "workflow": "disabled"
+      },
+      "title": "Document Register"
+    },
+    {
+      "case_id": "SSMB-026",
+      "intent_path": "intents/ssmb-026-document-approval.md",
+      "slices": {
+        "database": "PostgreSQL",
+        "domain_pack": "workflow_approval",
+        "rule_complexity": "contextual",
+        "tenancy": "enabled",
+        "update_model": "present",
+        "workflow": "enabled"
+      },
+      "title": "Document Approval"
+    },
+    {
+      "case_id": "SSMB-027",
+      "intent_path": "intents/ssmb-027-payroll-adjustment.md",
+      "slices": {
+        "database": "PostgreSQL",
+        "domain_pack": "hr",
+        "rule_complexity": "none",
+        "tenancy": "enabled",
+        "update_model": "present",
+        "workflow": "disabled"
+      },
+      "title": "Payroll Adjustment"
+    },
+    {
+      "case_id": "SSMB-028",
+      "intent_path": "intents/ssmb-028-payroll-approval-context.md",
+      "slices": {
+        "database": "PostgreSQL",
+        "domain_pack": "hr+workflow_approval",
+        "rule_complexity": "contextual",
+        "tenancy": "enabled",
+        "update_model": "present",
+        "workflow": "enabled"
+      },
+      "title": "Payroll Approval Context"
+    },
+    {
+      "case_id": "SSMB-029",
+      "intent_path": "intents/ssmb-029-maintenance-work-order.md",
+      "slices": {
+        "database": "PostgreSQL",
+        "domain_pack": "generic_crud+workflow_approval",
+        "rule_complexity": "none",
+        "tenancy": "enabled",
+        "update_model": "present",
+        "workflow": "enabled"
+      },
+      "title": "Maintenance Work Order"
+    },
+    {
+      "case_id": "SSMB-030",
+      "intent_path": "intents/ssmb-030-maintenance-temporal-patch.md",
+      "slices": {
+        "database": "InMemory",
+        "domain_pack": "generic_crud",
+        "rule_complexity": "multi_field",
+        "tenancy": "disabled",
+        "update_model": "present",
+        "workflow": "disabled"
+      },
+      "title": "Maintenance Temporal Patch"
+    }
+  ],
+  "corpus_sha256": "650d129b6602fd024ff94e8d292468df905da303698caccc1d9a43e8e14706bf",
+  "frozen": true,
+  "kind": "SSMBenchmarkManifest",
+  "name": "SSM-Bench v1",
+  "schema_version": "1.0"
+}
