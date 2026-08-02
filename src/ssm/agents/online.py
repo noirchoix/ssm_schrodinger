@@ -210,6 +210,11 @@ fields:
   name: string required max=120
   status: string required max=40 default=draft
 
+#DataModel <Name>Update
+fields:
+  name: string max=120
+  status: string max=40
+
 #Route <Name>
 method: GET | POST | PATCH | PUT | DELETE
 path: /resources or /resources/{id}
@@ -285,7 +290,9 @@ severity: error
 Rules:
 - Model app foundations across domains, not only inventory.
 - Pick capability sections such as generic_crud, workflow_approval, inventory, hr, expense, crm, procurement, ticketing, or school when relevant.
-- For create/update routes, define both Resource and ResourceCreate models.
+- For CRUD routes, define Resource, ResourceCreate, and ResourceUpdate models.
+- POST routes must use ResourceCreate; PATCH and PUT routes must use ResourceUpdate.
+- Use default=now for datetime fields and default=today for date fields; do not use quoted placeholders such as default="".
 - For CRUD requests, include list, create, get-by-id, patch/update, and delete routes.
 - For workflow apps, include #Workflow with states, transitions, and actions.
 - Every executable #BusinessRule or #Invariant must include entity: <existing DataModel>.

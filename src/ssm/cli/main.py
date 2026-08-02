@@ -18,6 +18,8 @@ from ssm.foundation.negotiator import CapabilityNegotiator
 from ssm.foundation.planner import AppFoundationPlanner
 from ssm.foundation.renderer import FoundationSMLRenderer
 from ssm.pipeline import SSMCompiler
+from ssm.product.compiler import SchrodingerProductCompiler
+from ssm.requirements.extractor import IntentRequirementsCompiler
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -105,6 +107,46 @@ def main(argv: list[str] | None = None) -> int:
         help="Emit an SML semantic patch for a missing schema diagnostic.",
     )
     repair_cmd.add_argument("schema")
+
+    requirements_cmd = sub.add_parser(
+        "requirements",
+        help="Normalize a README or prompt into a typed RequirementsIR with ambiguities and contradictions.",
+    )
+    requirements_source = requirements_cmd.add_mutually_exclusive_group(required=True)
+    requirements_source.add_argument("--file")
+    requirements_source.add_argument("--prompt")
+    requirements_cmd.add_argument("--out")
+
+    collapse_cmd = sub.add_parser(
+        "collapse-plan",
+        help="Resolve intent through RequirementsIR, FoundationPlan, ArchitectureIR, capabilities, and SML.",
+    )
+    collapse_source = collapse_cmd.add_mutually_exclusive_group(required=True)
+    collapse_source.add_argument("--file")
+    collapse_source.add_argument("--prompt")
+    collapse_cmd.add_argument("--out")
+
+    compile_intent_cmd = sub.add_parser(
+        "compile-intent",
+        help="Compile README/product intent through the full Schrödinger collapse pipeline.",
+    )
+    compile_intent_source = compile_intent_cmd.add_mutually_exclusive_group(required=True)
+    compile_intent_source.add_argument("--file")
+    compile_intent_source.add_argument("--prompt")
+    compile_intent_cmd.add_argument("--out", required=True)
+    compile_intent_cmd.add_argument("--allow-partial", action="store_true")
+    compile_intent_cmd.add_argument("--certification-runs", type=int, default=3)
+
+    certify_cmd = sub.add_parser(
+        "certify-intent",
+        help="Compile and emit the V2.5 variability/senior-grade certification report.",
+    )
+    certify_source = certify_cmd.add_mutually_exclusive_group(required=True)
+    certify_source.add_argument("--file")
+    certify_source.add_argument("--prompt")
+    certify_cmd.add_argument("--out")
+    certify_cmd.add_argument("--allow-partial", action="store_true")
+    certify_cmd.add_argument("--certification-runs", type=int, default=3)
 
     args = parser.parse_args(argv)
     compiler = SSMCompiler()
@@ -261,6 +303,107 @@ def main(argv: list[str] | None = None) -> int:
             patch = RepairAgent().patch_missing_schema(args.schema)
             print(patch.model_dump_json(indent=2))
             return 0
+        if args.command == "requirements":
+            if args.file:
+                requirements_ir = IntentRequirementsCompiler().compile_file(args.file)
+            else:
+                requirements_ir = IntentRequirementsCompiler().compile_text(
+                    args.prompt, source_name="<prompt>"
+                )
+            output = requirements_ir.model_dump_json(indent=2)
+            if args.out:
+                out = Path(args.out)
+                out.parent.mkdir(parents=True, exist_ok=True)
+                out.write_text(output + "\n", encoding="utf-8")
+                print(json.dumps({"success": True, "out": str(out)}, indent=2))
+            else:
+                print(output)
+            return 0
+        if args.command == "collapse-plan":
+            product = SchrodingerProductCompiler()
+            collapse_plan = (
+                product.collapse_file(args.file)
+                if args.file
+                else product.collapse_text(args.prompt, source_name="<prompt>")
+            )
+            output = collapse_plan.model_dump_json(indent=2)
+            if args.out:
+                out = Path(args.out)
+                out.parent.mkdir(parents=True, exist_ok=True)
+                out.write_text(output + "\n", encoding="utf-8")
+                print(json.dumps({"success": True, "out": str(out)}, indent=2))
+            else:
+                print(output)
+            return 0
+        if args.command in {"compile-intent", "certify-intent"}:
+            product = SchrodingerProductCompiler()
+            source_text = Path(args.file).read_text(encoding="utf-8") if args.file else args.prompt
+            source_name = args.file or "<prompt>"
+            build_out = (
+                Path(args.out)
+                if args.command == "compile-intent"
+                else Path(args.out)
+                if args.out
+                else None
+            )
+            product_result = product.build_text(
+                source_text,
+                source_name=source_name,
+                out_dir=build_out,
+                allow_partial=args.allow_partial,
+                certification_repetitions=args.certification_runs,
+            )
+            if args.command == "certify-intent":
+                if product_result.certification is None:
+                    raise RuntimeError("Certification report was not produced.")
+                output = product_result.certification.model_dump_json(indent=2)
+                if args.out:
+                    out = Path(args.out)
+                    out.mkdir(parents=True, exist_ok=True)
+                    report_path = out / "certification_report.json"
+                    report_path.write_text(output + "\n", encoding="utf-8")
+                    print(json.dumps({"success": True, "out": str(report_path)}, indent=2))
+                else:
+                    print(output)
+            else:
+                print(
+                    json.dumps(
+                        {
+                            "success": product_result.status != "REJECTED",
+                            "status": product_result.status,
+                            "out": product_result.out_dir,
+                            "generated_app": product_result.generated_app_dir,
+                            "generated_files": product_result.generated_file_count,
+                            "selected_architecture": product_result.selected_architecture,
+                            "negotiation_status": product_result.negotiation_status,
+                            "capability_status": product_result.capability_status,
+                            "certification_status": (
+                                product_result.certification.status
+                                if product_result.certification is not None
+                                else None
+                            ),
+                            "semantic_variance_score": (
+                                product_result.certification.variability.semantic_variance_score
+                                if product_result.certification is not None
+                                else None
+                            ),
+                            "artifact_diff": (
+                                {
+                                    "added": product_result.artifact_diff.added,
+                                    "modified": product_result.artifact_diff.modified,
+                                    "removed": product_result.artifact_diff.removed,
+                                    "unchanged": product_result.artifact_diff.unchanged,
+                                }
+                                if product_result.artifact_diff is not None
+                                else None
+                            ),
+                            "warnings": product_result.warnings,
+                            "blocking_reasons": product_result.blocking_reasons,
+                        },
+                        indent=2,
+                    )
+                )
+            return 0 if product_result.status != "REJECTED" else 2
     except SSMError as exc:
         print(str(exc), file=sys.stderr)
         return 2

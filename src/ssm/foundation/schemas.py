@@ -49,11 +49,26 @@ class AppRoute(BaseModel):
     returns: str | None = None
 
 
+class AppCapabilityContract(BaseModel):
+    capability_id: str
+    support_status: Literal[
+        "SUPPORTED",
+        "SUPPORTED_WITH_ASSUMPTIONS",
+        "PARTIALLY_SUPPORTED",
+        "UNSUPPORTED",
+    ]
+    implementation_status: Literal["production", "scaffold", "contract_only", "unsupported"]
+    guarantees: list[str] = Field(default_factory=list)
+    limitations: list[str] = Field(default_factory=list)
+    requirement_ids: list[str] = Field(default_factory=list)
+
+
 class AppFoundationPlan(BaseModel):
     app_name: str
     description: str = ""
     app_type: str = "generic"
     domain_pack_candidates: list[str] = Field(default_factory=list)
+    capabilities: list[AppCapabilityContract] = Field(default_factory=list)
     entities: list[AppEntity] = Field(default_factory=list)
     relationships: list[AppRelationship] = Field(default_factory=list)
     roles: list[AppRole] = Field(default_factory=list)
@@ -65,6 +80,8 @@ class AppFoundationPlan(BaseModel):
     unsupported_features: list[str] = Field(default_factory=list)
     assumptions: list[str] = Field(default_factory=list)
     questions: list[str] = Field(default_factory=list)
+    requirement_trace_ids: list[str] = Field(default_factory=list)
+    requirement_trace: dict[str, list[str]] = Field(default_factory=dict)
     backend: str = "FastAPI"
     database: str = "PostgreSQL"
     auth: str = "JWT"

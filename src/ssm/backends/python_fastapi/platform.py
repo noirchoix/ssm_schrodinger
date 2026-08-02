@@ -108,7 +108,7 @@ def evidence_record_files(
     generated_app_manifest = {
         "schema_version": "2.0",
         "kind": "GeneratedAppManifest",
-        "platform_release": "2.0.0-dev",
+        "platform_release": "2.5.0-dev",
         "compiler": {
             "version": manifest.compiler_version,
             "target": manifest.target,
@@ -922,7 +922,7 @@ def _workflow_py(
     rules: list[dict[str, Any]],
     sqlalchemy_enabled: bool,
 ) -> str:
-    if not workflows:
+    if not workflows and not rules:
         return dedent("""
             from __future__ import annotations
 
@@ -1651,7 +1651,7 @@ def _admin_ui_files(graph: SIRGraph) -> list[GeneratedFile]:
     package_json = json.dumps(
         {
             "name": "generated-ssm-admin",
-            "version": "2.0.0",
+            "version": "2.5.0",
             "private": True,
             "type": "module",
             "engines": {"node": ">=20.19"},

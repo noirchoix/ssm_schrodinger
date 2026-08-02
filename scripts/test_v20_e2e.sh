@@ -47,7 +47,7 @@ python -m pip install -e ".[dev]"
 export PIPAPI_PYTHON_LOCATION="$(python -c 'import sys; print(sys.executable)')"
 python - <<'PY'
 import ssm
-assert ssm.__version__ == "2.0.0.dev0", ssm.__version__
+assert ssm.__version__ == "2.5.0.dev0", ssm.__version__
 print(f"runtime version: {ssm.__version__}")
 PY
 
@@ -309,7 +309,7 @@ summary = {
     "schema_version": "2.0",
     "kind": "V20ReleaseGateSummary",
     "status": "PASSED",
-    "runtime_version": "2.0.0.dev0",
+    "runtime_version": "2.5.0.dev0",
     "live_deepseek_executed": "$RUN_DEEPSEEK_LIVE" == "1",
     "gates": [
         "framework_quality",

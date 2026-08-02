@@ -1,20 +1,41 @@
-# Semantic Software Markup Compiler — V2.0.0-dev Product Platform
+# Semantic Software Markup Compiler — V2.5.0-dev Schrödinger Collapse Platform
 
-SSM V2.0 is the product-platform development line built on the locked V1.3.2 general-domain foundation. It generates deterministic FastAPI backends, tenant/RBAC/audit/workflow runtime primitives, provenance-backed release evidence, and production-buildable React/Vite admin clients. Online models remain constrained to SML drafting and repair; compiler code emits final source.
+SSM V2.5 extends the validated V2.0 deterministic compiler with a high-level uncertainty-collapse pipeline:
 
-## V2.0 release gate
-
-```bash
-./scripts/test_v20_e2e.sh
+```text
+README / prompt / PRD
+→ typed RequirementsIR
+→ AppFoundationPlan
+→ constrained ArchitecturePlan
+→ capability composition
+→ SML / SIR / logic resolution
+→ deterministic FastAPI generation
+→ incremental artifact evidence
+→ repeated-run variability certification
 ```
 
-Final live-provider certification:
+The LLM remains outside the final source-generation authority. Natural-language inputs are normalized into typed, inspectable artifacts before the existing SML/SIR compiler is invoked. Unsupported, ambiguous, contradictory, inferred, scaffold-only, and contract-only requirements remain explicit.
+
+## V2.5 quick start
 
 ```bash
-RUN_DEEPSEEK_LIVE=1 ./scripts/test_v20_e2e.sh
+python -m pip install -e ".[dev]"
+python -m ssm.cli.main requirements --file examples/intent_inputs/hr_leave_readme.md
+python -m ssm.cli.main collapse-plan --file examples/intent_inputs/hr_leave_readme.md
+python -m ssm.cli.main compile-intent   --file examples/intent_inputs/hr_leave_readme.md   --out build/product
 ```
 
-See `docs/V2_0_PLATFORM.md`, `docs/V2_0_ACCEPTANCE_MATRIX.md`, and `docs/V2_0_LOCAL_VALIDATION.md` for the product boundary, criterion-by-criterion evidence, and latest local gate record.
+Run the V2.5 collapse gate:
+
+```bash
+./scripts/test_v25_e2e.sh
+```
+
+See `docs/V2_1_TO_V2_5_SCHRODINGER_ROADMAP_IMPLEMENTATION.md` for the implemented boundary and limitations.
+
+## Preserved V2.0 platform gate
+
+The V2.0 target-platform and live-provider evidence remain documented in `docs/V2_0_PLATFORM.md`, `docs/V2_0_ACCEPTANCE_MATRIX.md`, and `docs/V2_0_LOCAL_VALIDATION.md`. The historical release script remains at `scripts/test_v20_e2e.sh`.
 
 ---
 

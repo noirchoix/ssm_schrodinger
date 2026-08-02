@@ -81,6 +81,30 @@ class CapabilityNegotiator:
                             severity="error",
                         )
                     )
+        for capability in plan.capabilities:
+            if capability.support_status == "UNSUPPORTED":
+                unsupported.append(capability.capability_id)
+                issues.append(
+                    CapabilityIssue(
+                        code="CAP_COMPOSED_CAPABILITY_UNSUPPORTED",
+                        message=(
+                            f"Capability {capability.capability_id} is unsupported by the selected "
+                            "target profile."
+                        ),
+                        severity="error",
+                    )
+                )
+            elif capability.support_status == "PARTIALLY_SUPPORTED":
+                issues.append(
+                    CapabilityIssue(
+                        code="CAP_COMPOSED_CAPABILITY_PARTIAL",
+                        message=(
+                            f"Capability {capability.capability_id} is only "
+                            f"{capability.implementation_status}."
+                        ),
+                        severity="warning",
+                    )
+                )
         status = self._status(issues, plan.assumptions)
         return CapabilityNegotiationResult(
             status=status,
@@ -160,6 +184,9 @@ class CapabilityNegotiator:
             features.append("tenant-foundation")
         if plan.audit_enabled:
             features.append("audit-foundation")
+        features.extend(
+            f"capability:{capability.capability_id}" for capability in plan.capabilities
+        )
         return sorted(set(features))
 
     def _status(

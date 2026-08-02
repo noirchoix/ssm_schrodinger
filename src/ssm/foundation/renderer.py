@@ -6,11 +6,11 @@ from ssm.foundation.schemas import AppEntity, AppFoundationPlan
 class FoundationSMLRenderer:
     """Render AppFoundationPlan into deterministic SML."""
 
-    def render(self, plan: AppFoundationPlan) -> str:
+    def render(self, plan: AppFoundationPlan, *, architecture_pattern: str | None = None) -> str:
         lines: list[str] = [
             "#Project",
             f"name: {plan.app_name}",
-            f"description: {plan.description}",
+            f"description: {self._scalar(plan.description)}",
             "",
             "#Stack",
             f"backend: {plan.backend}",
@@ -18,8 +18,37 @@ class FoundationSMLRenderer:
             f"auth: {plan.auth}",
             "",
         ]
+        if architecture_pattern:
+            lines.extend(
+                [
+                    "#Decision ArchitecturePattern",
+                    f"selected: {architecture_pattern}",
+                    "source: constrained_architecture_resolution",
+                    "",
+                ]
+            )
+        emitted_capabilities: set[str] = set()
         for pack in plan.domain_pack_candidates:
+            emitted_capabilities.add(pack)
             lines.extend([f"#Capability {pack}", "status: requested", ""])
+        for capability in plan.capabilities:
+            if capability.capability_id in emitted_capabilities:
+                continue
+            emitted_capabilities.add(capability.capability_id)
+            lines.extend(
+                [
+                    f"#Capability {capability.capability_id}",
+                    f"status: {capability.support_status}",
+                    f"implementation: {capability.implementation_status}",
+                ]
+            )
+            if capability.guarantees:
+                lines.append("guarantees:")
+                lines.extend(f"  - {item}" for item in capability.guarantees)
+            if capability.limitations:
+                lines.append("limitations:")
+                lines.extend(f"  - {self._scalar(item)}" for item in capability.limitations)
+            lines.append("")
         if plan.tenant_enabled:
             lines.extend(["#Tenant", "enabled: true", "scope: organization", ""])
         if plan.audit_enabled:
@@ -90,7 +119,7 @@ class FoundationSMLRenderer:
                 "broad_catch: forbidden",
                 "",
                 "#Constraint Architecture",
-                "architecture: layered",
+                f"architecture: {self._architecture_constraint(architecture_pattern)}",
                 "",
             ]
         )
@@ -113,6 +142,14 @@ class FoundationSMLRenderer:
             lines.append(f"  {name}: {descriptor}")
         lines.append("")
         return lines
+
+    def _architecture_constraint(self, pattern: str | None) -> str:
+        if pattern is None or pattern == "layered_modular_monolith":
+            return "layered"
+        return pattern
+
+    def _scalar(self, value: str) -> str:
+        return " ".join(value.split())
 
     def _pascal(self, value: str) -> str:
         return "".join(part.capitalize() for part in value.replace("-", "_").split("_") if part)

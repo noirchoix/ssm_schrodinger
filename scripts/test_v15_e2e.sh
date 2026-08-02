@@ -54,7 +54,7 @@ python -m pip install -e ".[dev]"
 export PIPAPI_PYTHON_LOCATION="$(python -c 'import sys; print(sys.executable)')"
 python - <<'PY'
 import ssm
-assert ssm.__version__ == "2.0.0.dev0", ssm.__version__
+assert ssm.__version__ == "2.5.0.dev0", ssm.__version__
 print(f"runtime version: {ssm.__version__}")
 PY
 
@@ -188,6 +188,6 @@ echo "=== 7. SECRET CHECK ==="
 python scripts/secret_scan.py --root . --exclude .env.online.local --exclude e2e_logs
 
 echo "============================================================"
-echo "ALL V1.5 COMPATIBILITY GATES PASSED UNDER V2.0.0-dev"
+echo "ALL V1.5 COMPATIBILITY GATES PASSED UNDER V2.5.0-dev"
 echo "Log saved to: $LOG_FILE"
 echo "============================================================"
