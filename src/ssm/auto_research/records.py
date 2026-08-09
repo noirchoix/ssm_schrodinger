@@ -48,8 +48,16 @@ def environment_identity(
         "attributes": attributes or {},
     }
     return EnvironmentIdentity(
-        **payload,
+        compiler_version=__version__,
+        python_version=platform_module.python_version(),
+        platform=platform_module.platform(),
+        provider=provider,
+        model=model,
+        scaffold_version=scaffold_version,
+        prompt_version=prompt_version,
+        dependency_lock_sha256=dependency_digest,
         environment_lock_sha256=sha256_value(payload),
+        attributes=attributes or {},
     )
 
 

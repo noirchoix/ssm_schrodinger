@@ -5,7 +5,7 @@ import time
 import uuid
 from contextlib import AbstractContextManager
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import ValidationError
 
@@ -61,7 +61,9 @@ class _SpanContext(AbstractContextManager["_SpanContext"]):
     def set_error(self, value: BaseException | str) -> None:
         self.error = str(value)
 
-    def __exit__(self, exc_type: object, exc: BaseException | None, traceback: object) -> bool:
+    def __exit__(
+        self, exc_type: object, exc: BaseException | None, traceback: object
+    ) -> Literal[False]:
         if exc is not None and self.error is None:
             self.error = str(exc)
         duration = max(0, int(time.time() * 1000) - self.started_at_ms)
@@ -251,6 +253,7 @@ def determinism_census(paths: list[str | Path]) -> DeterminismCensusReport:
         total += count
         errors = sum(item.error is not None for item in observations)
         outputs = {sha256_value(item.output) for item in observations}
+        classification: Literal["WITNESSED_DETERMINISTIC", "WITNESSED_DIVERGENT", "UNWITNESSED"]
         if count < 2:
             classification = "UNWITNESSED"
         elif errors == 0 and len(outputs) == 1:

@@ -333,14 +333,14 @@ class SchrodingerProductCompiler:
 
     def _stage_output(self, value: object) -> dict[str, object]:
         if hasattr(value, "model_dump"):
-            payload = value.model_dump(mode="json")  # type: ignore[attr-defined]
+            payload = value.model_dump(mode="json")
         elif isinstance(value, str):
             payload = value
         elif hasattr(value, "files"):
             payload = {
                 "files": [
                     {"path": item.path, "sha256": sha256_value(item.content)}
-                    for item in value.files  # type: ignore[attr-defined]
+                    for item in value.files
                 ]
             }
         else:

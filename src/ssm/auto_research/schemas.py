@@ -79,8 +79,8 @@ class GenerationRunRecord(BaseModel):
 
     def verify_identity(self) -> bool:
         payload = self.model_dump(mode="json")
-        identity = payload.pop("record_id")
-        return identity == "sha256:" + sha256_value(payload)
+        identity = payload.pop("record_id", None)
+        return isinstance(identity, str) and identity == "sha256:" + sha256_value(payload)
 
 
 class TraceHeader(BaseModel):

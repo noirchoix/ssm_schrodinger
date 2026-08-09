@@ -6,6 +6,7 @@ from collections import defaultdict
 from collections.abc import Iterable
 from pathlib import Path
 from statistics import mean
+from typing import Literal
 
 from ssm.auto_research.schemas import (
     AssayMetricResult,
@@ -145,7 +146,9 @@ def _assay_metric(
     negative = sum(item < 0 for item in nonzero)
     p_value = _two_sided_binomial(min(positive, negative), len(nonzero)) if nonzero else 1.0
     effect = mean(differences)
-    direction = "increase" if effect > 0 else "decrease" if effect < 0 else "unchanged"
+    direction: Literal["increase", "decrease", "unchanged", "unknown"] = (
+        "increase" if effect > 0 else "decrease" if effect < 0 else "unchanged"
+    )
     return AssayMetricResult(
         metric=metric,
         pairs=len(values),
@@ -164,7 +167,7 @@ def _two_sided_binomial(smaller_side: int, n: int) -> float:
     if n == 0:
         return 1.0
     tail = sum(math.comb(n, index) for index in range(smaller_side + 1)) / (2**n)
-    return min(1.0, 2 * tail)
+    return float(min(1.0, 2 * tail))
 
 
 def _overall_verdict(
@@ -174,7 +177,7 @@ def _overall_verdict(
     minimum_pairs: int,
     change_intent: ChangeIntentContract | None,
     reasons: list[str],
-) -> str:
+) -> Literal["NO_MATERIAL_CHANGE", "INTENDED_EVOLUTION", "REGRESSION", "INCONCLUSIVE"]:
     if matched_pairs < minimum_pairs:
         reasons.append(
             f"Only {matched_pairs} matched pairs are available; {minimum_pairs} are required."
@@ -290,13 +293,7 @@ def _slice_results(
 ) -> list[SliceAssayResult]:
     results: list[SliceAssayResult] = []
     for slice_key in slice_keys:
-        values = sorted(
-            {
-                left.slices.get(slice_key)
-                for left, _ in pairs
-                if left.slices.get(slice_key) is not None
-            }
-        )
+        values = sorted({left.slices[slice_key] for left, _ in pairs if slice_key in left.slices})
         for value in values:
             subset = [
                 (left, right)

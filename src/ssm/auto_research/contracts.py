@@ -67,19 +67,19 @@ def _compare(observed: Any, operator: str, threshold: Any) -> bool:
     if operator == "present":
         return observed is not None
     if operator == "eq":
-        return observed == threshold
+        return bool(observed == threshold)
     if operator == "ne":
-        return observed != threshold
+        return bool(observed != threshold)
     if operator == "lt":
-        return observed < threshold
+        return bool(observed < threshold)
     if operator == "le":
-        return observed <= threshold
+        return bool(observed <= threshold)
     if operator == "gt":
-        return observed > threshold
+        return bool(observed > threshold)
     if operator == "ge":
-        return observed >= threshold
+        return bool(observed >= threshold)
     if operator == "between":
         if not isinstance(threshold, list) or len(threshold) != 2:
             raise ValueError("between requires a two-item threshold list")
-        return threshold[0] <= observed <= threshold[1]
+        return bool(threshold[0] <= observed <= threshold[1])
     raise ValueError(f"Unknown metric operator: {operator}")

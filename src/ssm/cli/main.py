@@ -392,7 +392,7 @@ def main(argv: list[str] | None = None) -> int:
                     raise ValueError(f"Invalid --slice value {item!r}; expected key=value.")
                 key, value = item.split("=", 1)
                 slices[key.strip()] = value.strip()
-            result = SchrodingerProductCompiler().build_text(
+            research_result = SchrodingerProductCompiler().build_text(
                 source_text,
                 source_name=source_name,
                 out_dir=args.out,
@@ -412,8 +412,8 @@ def main(argv: list[str] | None = None) -> int:
             print(
                 json.dumps(
                     {
-                        "success": result.status != "REJECTED",
-                        "status": result.status,
+                        "success": research_result.status != "REJECTED",
+                        "status": research_result.status,
                         "run_record": str(run_path),
                         "record_id": run.record_id,
                         "trace_ids": run.trace_ids,
@@ -421,20 +421,20 @@ def main(argv: list[str] | None = None) -> int:
                     indent=2,
                 )
             )
-            return 0 if result.status != "REJECTED" else 2
+            return 0 if research_result.status != "REJECTED" else 2
         if args.command == "research-trace-report":
-            report = determinism_census(args.trace)
-            output = report.model_dump(mode="json")
+            census_report = determinism_census(args.trace)
+            census_payload = census_report.model_dump(mode="json")
             if args.out:
-                write_canonical_json(args.out, output)
-            print(report.model_dump_json(indent=2))
+                write_canonical_json(args.out, census_payload)
+            print(census_report.model_dump_json(indent=2))
             return 0
         if args.command == "research-replay-compare":
-            report = compare_traces(args.baseline, args.candidate)
+            replay_report = compare_traces(args.baseline, args.candidate)
             if args.out:
-                write_canonical_json(args.out, report.model_dump(mode="json"))
-            print(report.model_dump_json(indent=2))
-            return 0 if report.equivalent else 2
+                write_canonical_json(args.out, replay_report.model_dump(mode="json"))
+            print(replay_report.model_dump_json(indent=2))
+            return 0 if replay_report.equivalent else 2
         if args.command == "research-contract-verify":
             contract = BehaviouralContract.model_validate_json(
                 Path(args.contract).read_text(encoding="utf-8")
@@ -499,7 +499,7 @@ def main(argv: list[str] | None = None) -> int:
                 change_intent = ChangeIntentContract.model_validate_json(
                     Path(args.change_intent).read_text(encoding="utf-8")
                 )
-            report = compare_releases(
+            assay_report = compare_releases(
                 baseline,
                 candidate,
                 metrics=args.metric,
@@ -508,9 +508,9 @@ def main(argv: list[str] | None = None) -> int:
                 change_intent=change_intent,
                 slice_keys=args.slice_key,
             )
-            write_canonical_json(args.out, report.model_dump(mode="json"))
-            print(report.model_dump_json(indent=2))
-            return 2 if report.verdict in {"REGRESSION", "INCONCLUSIVE"} else 0
+            write_canonical_json(args.out, assay_report.model_dump(mode="json"))
+            print(assay_report.model_dump_json(indent=2))
+            return 2 if assay_report.verdict in {"REGRESSION", "INCONCLUSIVE"} else 0
         if args.command == "requirements":
             if args.file:
                 requirements_ir = IntentRequirementsCompiler().compile_file(args.file)
