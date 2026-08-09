@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import ast
 import hashlib
 import json
 import re
 from pprint import pformat
 from textwrap import dedent
+from types import EllipsisType
 from typing import Any
 
 from ssm.models import CompileManifest, GeneratedFile, ResolutionResult, SIRGraph
@@ -258,11 +260,13 @@ def platform_test_files(
     selected_workflow = workflows[0] if workflows else None
     workflow_name = selected_workflow["name"] if selected_workflow else "DefaultWorkflow"
     action = _first_valid_action(selected_workflow) if selected_workflow else "advance"
-    applicable_rule_names = sorted(
-        rule["name"]
+    applicable_rules = [
+        rule
         for rule in rules
         if selected_workflow is not None and rule["entity"] == selected_workflow["entity"]
-    )
+    ]
+    applicable_rule_names = sorted(rule["name"] for rule in applicable_rules)
+    workflow_rule_context = _workflow_rule_test_context(applicable_rules)
     expected_tenant = "tenant-a" if _section_enabled(graph, "Tenant") else "default"
     audit_enabled = _section_enabled(graph, "Audit")
     return {
@@ -274,10 +278,188 @@ def platform_test_files(
             audit_enabled,
             bool(workflows),
             applicable_rule_names,
+            workflow_rule_context,
             repo_strategy == "sqlalchemy",
         ),
         "tests/test_admin_ui_static.py": _admin_static_tests_py(),
     }
+
+
+def _rule_reference_path(node: ast.AST) -> tuple[str, ...] | None:
+    if isinstance(node, ast.Name):
+        return (node.id,)
+    if isinstance(node, ast.Attribute):
+        parent = _rule_reference_path(node.value)
+        if parent is not None:
+            return (*parent, node.attr)
+    return None
+
+
+def _set_rule_context_path(
+    context: dict[str, Any],
+    path: tuple[str, ...],
+    value: Any,
+) -> None:
+    current = context
+    for part in path[:-1]:
+        existing = current.get(part)
+        if not isinstance(existing, dict):
+            existing = {}
+            current[part] = existing
+        current = existing
+    current[path[-1]] = value
+
+
+def _rule_value_before(value: Any) -> Any:
+    if isinstance(value, bool):
+        return False
+    if isinstance(value, (int, float)):
+        return value - 1
+    if isinstance(value, str):
+        return ""
+    return 0
+
+
+def _rule_value_after(value: Any) -> Any:
+    if isinstance(value, bool):
+        return True
+    if isinstance(value, (int, float)):
+        return value + 1
+    if isinstance(value, str):
+        return f"{value}~"
+    return 1
+
+
+def _rule_value_different(value: Any) -> Any:
+    if isinstance(value, bool):
+        return not value
+    if isinstance(value, (int, float)):
+        return value + 1
+    if isinstance(value, str):
+        return f"{value}__other"
+    return 1
+
+
+def _seed_rule_comparison(
+    context: dict[str, Any],
+    left: ast.AST,
+    operator: ast.cmpop,
+    right: ast.AST,
+) -> None:
+    left_path = _rule_reference_path(left)
+    right_path = _rule_reference_path(right)
+    left_constant = left.value if isinstance(left, ast.Constant) else None
+    right_constant = right.value if isinstance(right, ast.Constant) else None
+    left_value: int | list[int]
+    right_value: int | list[int]
+    value: (
+        str
+        | bytes
+        | int
+        | float
+        | complex
+        | EllipsisType
+        | None
+        | list[str | bytes | int | float | complex | EllipsisType | None]
+    )
+
+    if left_path is not None and right_path is not None:
+        if isinstance(operator, (ast.Eq, ast.LtE, ast.GtE)):
+            left_value, right_value = 1, 1
+        elif isinstance(operator, (ast.NotEq, ast.Lt)):
+            left_value, right_value = 1, 2
+        elif isinstance(operator, ast.Gt):
+            left_value, right_value = 2, 1
+        elif isinstance(operator, ast.In):
+            left_value, right_value = 1, [1]
+        elif isinstance(operator, ast.NotIn):
+            left_value, right_value = 1, [2]
+        else:
+            return
+        _set_rule_context_path(context, left_path, left_value)
+        _set_rule_context_path(context, right_path, right_value)
+        return
+
+    if left_path is not None and isinstance(right, ast.Constant):
+        if isinstance(operator, ast.Eq):
+            value = right_constant
+        elif isinstance(operator, ast.NotEq):
+            value = _rule_value_different(right_constant)
+        elif isinstance(operator, ast.Lt):
+            value = _rule_value_before(right_constant)
+        elif isinstance(operator, ast.LtE):
+            value = right_constant
+        elif isinstance(operator, ast.Gt):
+            value = _rule_value_after(right_constant)
+        elif isinstance(operator, ast.GtE):
+            value = right_constant
+        elif isinstance(operator, ast.In) and isinstance(right_constant, str):
+            value = right_constant[:1]
+        elif isinstance(operator, ast.NotIn):
+            value = _rule_value_different(right_constant)
+        else:
+            return
+        _set_rule_context_path(context, left_path, value)
+        return
+
+    if right_path is not None and isinstance(left, ast.Constant):
+        if isinstance(operator, ast.Eq):
+            value = left_constant
+        elif isinstance(operator, ast.NotEq):
+            value = _rule_value_different(left_constant)
+        elif isinstance(operator, ast.Lt):
+            value = _rule_value_after(left_constant)
+        elif isinstance(operator, ast.LtE):
+            value = left_constant
+        elif isinstance(operator, ast.Gt):
+            value = _rule_value_before(left_constant)
+        elif isinstance(operator, ast.GtE):
+            value = left_constant
+        elif isinstance(operator, ast.In):
+            value = [left_constant]
+        elif isinstance(operator, ast.NotIn):
+            value = [_rule_value_different(left_constant)]
+        else:
+            return
+        _set_rule_context_path(context, right_path, value)
+
+
+def _workflow_rule_test_context(rules: list[dict[str, Any]]) -> dict[str, Any]:
+    """Build deterministic JSON-safe context for generated workflow acceptance tests.
+
+    The workflow API accepts caller-supplied rule context, so generated tests must
+    include symbols referenced by the selected workflow's rules. Comparison nodes
+    seed deterministic values for the supported rule grammar; unbound roots receive
+    a neutral numeric value. Runtime and compiler semantics are unchanged.
+    """
+
+    context: dict[str, Any] = {
+        "requested_days": 1,
+        "amount": 1,
+        "quantity": 1,
+        "employee": {"leave_balance": 20},
+    }
+    parsed: list[ast.Expression] = []
+    for rule in rules:
+        try:
+            tree = ast.parse(str(rule["expression"]), mode="eval")
+        except SyntaxError:
+            continue
+        parsed.append(tree)
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Compare):
+                continue
+            left = node.left
+            for operator, right in zip(node.ops, node.comparators, strict=True):
+                _seed_rule_comparison(context, left, operator, right)
+                left = right
+
+    for tree in parsed:
+        for node in ast.walk(tree):
+            path = _rule_reference_path(node)
+            if path is not None and len(path) == 1 and path[0] not in context:
+                context[path[0]] = 1
+    return context
 
 
 def _project_spec(graph: SIRGraph) -> dict[str, Any]:
@@ -2187,6 +2369,27 @@ def _evidence_tests_py() -> str:
     return "\n".join(lines) + "\n"
 
 
+def _python_test_literal(value: Any) -> str:
+    if isinstance(value, str):
+        return json.dumps(value)
+    if value is True:
+        return "True"
+    if value is False:
+        return "False"
+    if value is None:
+        return "None"
+    if isinstance(value, (int, float)):
+        return repr(value)
+    if isinstance(value, list):
+        return "[" + ", ".join(_python_test_literal(item) for item in value) + "]"
+    if isinstance(value, dict):
+        items = ", ".join(
+            f"{json.dumps(str(key))}: {_python_test_literal(item)}" for key, item in value.items()
+        )
+        return "{" + items + "}"
+    return repr(value)
+
+
 def _platform_tests_py(
     workflow_name: str,
     action: str,
@@ -2194,6 +2397,7 @@ def _platform_tests_py(
     audit_enabled: bool,
     workflow_enabled: bool,
     applicable_rule_names: list[str],
+    workflow_rule_context: dict[str, Any],
     sqlalchemy_enabled: bool,
 ) -> str:
     lines = [
@@ -2296,10 +2500,10 @@ def _platform_tests_py(
             [
                 '    headers = {"x-tenant-id": "tenant-a"}',
                 "    context = {",
-                '        "requested_days": 1,',
-                '        "amount": 1,',
-                '        "quantity": 1,',
-                '        "employee": {"leave_balance": 20},',
+                *(
+                    f"        {json.dumps(key)}: {_python_test_literal(value)},"
+                    for key, value in workflow_rule_context.items()
+                ),
                 "    }",
                 "    response = client.post(",
                 f'        "/platform/workflows/{workflow_name}/resource-1/{action}",',

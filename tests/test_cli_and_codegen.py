@@ -566,6 +566,82 @@ def test_business_rules_remain_workflow_scoped_even_when_entity_local() -> None:
     assert "PositiveRequestedDays" in files["app/platform/workflow.py"]
 
 
+def test_generated_workflow_fixture_satisfies_date_arithmetic_rules(tmp_path: Path) -> None:
+    sml = """#Project WorkflowRuleFixture
+name: WorkflowRuleFixture
+
+#Stack
+backend: FastAPI
+database: PostgreSQL
+auth: JWT
+
+#DataModel LeaveRequest
+fields:
+  id: uuid primary
+  start_date: date required
+  end_date: date required
+
+#Workflow LeaveApproval
+entity: LeaveRequest
+states:
+  - pending
+  - approved
+transitions:
+  - pending -> approved
+actions:
+  - approve_leave
+
+#BusinessRule DateOrder
+entity: LeaveRequest
+rule: end_date > start_date
+on_violation: reject
+
+#BusinessRule MaxDuration
+entity: LeaveRequest
+rule: (end_date - start_date) <= 30
+on_violation: reject
+"""
+    compiler = SSMCompiler()
+    result = compiler.compile_text(sml, "workflow-rule-fixture.sml.md")
+    files = {file.path: file.content for file in result.files}
+    platform_tests = files["tests/test_platform_primitives.py"]
+
+    tree = ast.parse(platform_tests)
+    context = None
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Assign):
+            continue
+        if any(isinstance(target, ast.Name) and target.id == "context" for target in node.targets):
+            context = ast.literal_eval(node.value)
+            break
+
+    assert context is not None
+    assert context["start_date"] < context["end_date"]
+    assert context["end_date"] - context["start_date"] <= 30
+
+    compiler.write_result(result, tmp_path)
+    script = f"""
+from app.platform.workflow import BUSINESS_RULES, evaluate_rule
+
+context = {context!r}
+assert BUSINESS_RULES
+for rule in BUSINESS_RULES:
+    passed, detail = evaluate_rule(str(rule["expression"]), context)
+    assert passed, (rule["name"], detail)
+"""
+    env = dict(os.environ)
+    env["PYTHONPATH"] = str(tmp_path)
+    proc = subprocess.run(
+        [sys.executable, "-c", script],
+        text=True,
+        capture_output=True,
+        check=False,
+        env=env,
+        cwd=tmp_path,
+    )
+    assert proc.returncode == 0, proc.stderr
+
+
 def _distinct_route_body_project(update_method: str = "PATCH") -> str:
     return f"""#Project RouteBodyFixtures
 name: RouteBodyFixtures
