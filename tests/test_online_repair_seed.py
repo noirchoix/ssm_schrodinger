@@ -45,6 +45,6 @@ def test_seeded_initial_draft_forces_bounded_provider_repair(tmp_path: Path) -> 
     assert result.attempts == 2
     trace = json.loads((tmp_path / "repair_trace.json").read_text(encoding="utf-8"))
     assert trace["schema_version"] == "2.0"
-    assert trace["events"][0]["stage"] == "compile"
+    assert trace["events"][0]["stage"] == "semantic_conformance"
     assert trace["events"][0]["status"] == "rejected"
     assert trace["events"][-1]["status"] == "accepted"

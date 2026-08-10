@@ -23,7 +23,10 @@ from ssm.agents.schemas import SMLDocumentDraft
 from ssm.agents.settings import OnlineAgentSettings, SecretRedactor
 from ssm.auto_research.trace import TraceRecorder
 from ssm.errors import SSMError
+from ssm.frontend.parser import SMLParser
 from ssm.pipeline import SSMCompiler
+from ssm.product.schemas import CanonicalSemanticContext
+from ssm.product.semantic_context import SemanticConformanceVerifier, canonical_context_prompt
 
 
 class OnlineAgentDisabledError(ProviderError):
@@ -65,10 +68,11 @@ class OnlineAgentAuditLogger:
 
 
 class OnlineDraftService:
-    """Online prompt-to-SML service.
+    """Online canonical-context-to-SML service.
 
-    Online models are allowed to draft SML only. The deterministic compiler still
-    owns semantic validation, resolution, and final source generation.
+    Raw intent is canonicalized before provider invocation. Online models are
+    allowed to draft SML only; semantic conformance and deterministic compilation
+    remain downstream compiler-owned gates.
     """
 
     def __init__(
@@ -82,6 +86,7 @@ class OnlineDraftService:
         self.settings = settings
         self.provider = provider or make_generation_provider(settings)
         self.compiler = compiler or SSMCompiler()
+        self.parser = SMLParser()
         self.audit_logger = audit_logger or OnlineAgentAuditLogger(settings)
         self.trace_recorder = trace_recorder
 
@@ -91,11 +96,40 @@ class OnlineDraftService:
         return cls(resolved)
 
     def draft(self, prompt: str) -> SMLDocumentDraft:
+        # Compatibility entry point. Even direct draft calls first traverse the
+        # deterministic semantic front-end so providers never receive raw intent
+        # as the sole semantic authority.
+        from ssm.product.compiler import SchrodingerProductCompiler
+
+        context = SchrodingerProductCompiler().prepare_semantic_context(
+            prompt,
+            source_name="<online-prompt>",
+        )
+        return self.draft_context(context)
+
+    def draft_context(
+        self,
+        context: CanonicalSemanticContext,
+        *,
+        repair_issue: str = "",
+        verify_conformance: bool = True,
+    ) -> SMLDocumentDraft:
         self._require_online_enabled()
+        # Enforce the fail-closed canonical boundary even for callers that use
+        # OnlineDraftService directly rather than the higher-level builder.
+        from ssm.product.compiler import SchrodingerProductCompiler
+
+        blocking = SchrodingerProductCompiler().semantic_context_blocking_reasons(context)
+        if blocking:
+            raise OnlineDraftValidationError(
+                "Canonical semantic context is blocked before online synthesis: "
+                + "; ".join(blocking)
+            )
         run_id = str(uuid.uuid4())
         last_error = ""
+        provider_prompt = canonical_context_prompt(context, repair_issue=repair_issue)
         for attempt in range(self.settings.llm_max_retries + 1):
-            messages = self._messages(prompt, last_error=last_error)
+            messages = self._messages(provider_prompt, last_error=last_error)
             started = time.time()
             try:
                 response = self.provider.generate(messages)
@@ -105,7 +139,8 @@ class OnlineDraftService:
                         "model_call",
                         f"{response.provider}:{response.model}",
                         input_value={
-                            "prompt_sha256": _sha256(prompt),
+                            "canonical_context_sha256": context.semantic_fingerprint,
+                            "provider_prompt_sha256": _sha256(provider_prompt),
                             "attempt": attempt + 1,
                         },
                         output={
@@ -115,6 +150,16 @@ class OnlineDraftService:
                         duration_ms=elapsed_ms,
                     )
                 draft = self._parse_and_validate(response.text)
+                if verify_conformance:
+                    report = SemanticConformanceVerifier().verify(
+                        context,
+                        draft.text,
+                        source_file="<online-draft>",
+                    )
+                    if not report.accepted:
+                        raise OnlineDraftValidationError(
+                            SemanticConformanceVerifier().format_diagnostics(report)
+                        )
                 draft.provenance.append(f"online:{response.provider}:{response.model}:run:{run_id}")
                 self.audit_logger.write(
                     {
@@ -125,8 +170,9 @@ class OnlineDraftService:
                         "model": response.model,
                         "usage": response.usage.model_dump(),
                         "elapsed_ms": elapsed_ms,
-                        "prompt_sha256": _sha256(prompt),
-                        "prompt": prompt,
+                        "canonical_context_sha256": context.semantic_fingerprint,
+                        "provider_prompt_sha256": _sha256(provider_prompt),
+                        "prompt": provider_prompt,
                         "response_sha256": _sha256(response.text),
                         "response": response.text,
                     }
@@ -139,7 +185,8 @@ class OnlineDraftService:
                         "model_call",
                         f"{getattr(self.provider, 'name', 'unknown')}:{getattr(self.provider, 'model', 'unknown')}",
                         input_value={
-                            "prompt_sha256": _sha256(prompt),
+                            "canonical_context_sha256": context.semantic_fingerprint,
+                            "provider_prompt_sha256": _sha256(provider_prompt),
                             "attempt": attempt + 1,
                         },
                         error=last_error,
@@ -158,7 +205,8 @@ class OnlineDraftService:
                         "attempt": attempt + 1,
                         "provider": getattr(self.provider, "name", "unknown"),
                         "model": getattr(self.provider, "model", "unknown"),
-                        "prompt_sha256": _sha256(prompt),
+                        "canonical_context_sha256": context.semantic_fingerprint,
+                        "provider_prompt_sha256": _sha256(provider_prompt),
                         "error": last_error,
                     }
                 )
@@ -182,30 +230,35 @@ class OnlineDraftService:
             draft = draft.model_copy(update={"text": normalized_text})
         if not draft.text.strip().startswith("#Project"):
             raise OnlineDraftValidationError("SML draft must start with a #Project section.")
-        # Compile, not just parse. This proves schema references, symbolic rules,
-        # resolver decisions, and target-pack generation all accept the model output.
-        self.compiler.compile_text(draft.text, source_file="<online-draft>")
+        # Parse only. Candidate SML must pass the separate canonical semantic
+        # conformance verifier before it is allowed to enter SSMCompiler.
+        parser = getattr(self, "parser", None) or SMLParser()
+        parser.parse_text(draft.text, source_file="<online-draft>")
         return draft
 
-    def _messages(self, prompt: str, *, last_error: str) -> list[ChatMessage]:
+    def _messages(self, provider_prompt: str, *, last_error: str) -> list[ChatMessage]:
         repair_instruction = ""
         if last_error:
             repair_instruction = (
-                f"\nPrevious attempt failed compiler validation:\n{last_error}\nRepair the SML."
+                f"\nPrevious attempt failed SML validation:\n{last_error}\nRepair the SML."
             )
         return [
             ChatMessage(role="system", content=_SYSTEM_PROMPT),
             ChatMessage(
                 role="user",
-                content=(
-                    "Draft SML for this request. Return only a JSON object matching the required "
-                    f"schema.\n\nUSER REQUEST:\n{prompt}{repair_instruction}"
-                ),
+                content=(f"{provider_prompt}{repair_instruction}"),
             ),
         ]
 
 
-_SYSTEM_PROMPT = """You are the online SML drafting agent for a deterministic semantic app compiler.
+_SYSTEM_PROMPT = """You are the constrained SML synthesis agent for a deterministic semantic app compiler.
+
+You receive a CanonicalSemanticContext produced by deterministic requirements,
+foundation, architecture, capability-composition, and negotiation stages. That
+context is the semantic authority. Do not reinterpret raw user intent, remove
+required semantics, introduce new domain entities, change the negotiated stack,
+or silently resolve listed uncertainty. Your only task is to choose a valid SML
+representation of the supplied canonical semantics.
 
 Return a single JSON object only. Do not emit markdown fences. The JSON object must match:
 {

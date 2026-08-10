@@ -143,8 +143,6 @@ def test_normalized_relationship_sml_compiles_with_core_compiler() -> None:
 
 def test_online_draft_parse_validates_normalized_relationship_sml() -> None:
     service = object.__new__(OnlineDraftService)
-    compiler = RecordingCompiler()
-    service.compiler = compiler
     payload = json.dumps(
         {
             "text": DEEPSEEK_STYLE_RELATIONSHIP_SML,
@@ -156,7 +154,6 @@ def test_online_draft_parse_validates_normalized_relationship_sml() -> None:
 
     draft = service._parse_and_validate(payload)
 
-    assert draft.text == compiler.compiled_text
     assert "- from:" not in draft.text
     assert "source: Employee" in draft.text
     assert "target: Employee" in draft.text
@@ -164,8 +161,6 @@ def test_online_draft_parse_validates_normalized_relationship_sml() -> None:
 
 def test_online_draft_parse_validates_normalized_sml() -> None:
     service = object.__new__(OnlineDraftService)
-    compiler = RecordingCompiler()
-    service.compiler = compiler
     payload = json.dumps(
         {
             "text": DEEPSEEK_STYLE_SML,
@@ -177,7 +172,6 @@ def test_online_draft_parse_validates_normalized_sml() -> None:
 
     draft = service._parse_and_validate(payload)
 
-    assert draft.text == compiler.compiled_text
     assert "roles:" not in draft.text
     assert "#Role Manager" in draft.text
 

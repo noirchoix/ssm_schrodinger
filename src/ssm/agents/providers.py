@@ -298,6 +298,9 @@ def _optional_int(value: Any) -> int | None:
 
 
 def _mock_sml_for_prompt(prompt: str) -> str:
+    canonical = _mock_sml_from_canonical_context(prompt)
+    if canonical is not None:
+        return canonical
     lower = prompt.lower()
     is_todo = "todo" in lower and "inventory" not in lower and "product" not in lower
     if is_todo:
@@ -381,6 +384,35 @@ broad_catch: forbidden
 #Constraint Architecture
 architecture: layered
 """
+
+
+def _mock_sml_from_canonical_context(prompt: str) -> str | None:
+    marker = "CANONICAL SEMANTIC CONTEXT:"
+    if marker not in prompt:
+        return None
+    payload_text = prompt.split(marker, 1)[1].lstrip()
+    try:
+        payload, _ = json.JSONDecoder().raw_decode(payload_text)
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(payload, dict):
+        return None
+    foundation_payload = payload.get("foundation")
+    architecture_payload = payload.get("architecture")
+    if not isinstance(foundation_payload, dict) or not isinstance(architecture_payload, dict):
+        return None
+
+    # Local imports keep the provider layer independent for real HTTP providers
+    # while letting the deterministic mock mirror canonical semantics exactly.
+    from ssm.foundation.renderer import FoundationSMLRenderer
+    from ssm.foundation.schemas import AppFoundationPlan
+
+    foundation = AppFoundationPlan.model_validate(foundation_payload)
+    selected_pattern = architecture_payload.get("selected_pattern")
+    return FoundationSMLRenderer().render(
+        foundation,
+        architecture_pattern=str(selected_pattern) if selected_pattern else None,
+    )
 
 
 def assert_no_source_code(text: str) -> None:

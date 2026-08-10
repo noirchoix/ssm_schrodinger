@@ -11,7 +11,7 @@ export PYTHONPATH="$ROOT/src${PYTHONPATH:+:$PYTHONPATH}"
 
 "$PYTHON_BIN" - <<'PY'
 import ssm
-assert ssm.__version__ == "2.6.0.dev0", ssm.__version__
+assert ssm.__version__ == "2.6.0.dev2", ssm.__version__
 print(f"runtime version: {ssm.__version__}")
 PY
 

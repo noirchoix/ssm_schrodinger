@@ -1,5 +1,32 @@
 # Changelog
 
+## v2.6.0-dev.2 — Unified Canonical Semantic Context + Constrained Online SML Synthesis
+
+### Added
+
+- Added content-addressed `CanonicalSemanticContext` as the deterministic semantic authority between capability negotiation and SML synthesis.
+- Added structural `SemanticConformanceVerifier` with typed diagnostics for stack, tenancy, audit, capabilities, data models, relationships, roles, workflows, rules/invariants, routes, reports, and required scaffolding.
+- Added persisted `input.md`, canonical front-end artifacts, semantic-conformance reports, and corresponding generation-run fingerprints for online builds.
+- Added `online-build --file` so file and prompt entry paths converge on the same run-local input-document boundary.
+- Added fail-closed pre-provider rejection for contradictory, blocking, unsupported, or internally inconsistent canonical semantic contexts.
+- Added canonical-context-aware mock synthesis for deterministic online-path testing.
+
+### Changed
+
+- Unified offline and online generation behind the same RequirementsIR → foundation → architecture → capability composition → negotiation → canonical-context front end.
+- Online providers now receive a bounded canonical semantic payload rather than unconstrained raw intent as the semantic authority.
+- Candidate online SML is parsed, then checked for semantic conformance before candidate capability consistency and `SSMCompiler` invocation.
+- Bounded repair now distinguishes semantic-conformance rejection from compiler rejection and quality-gate rejection.
+- Offline deterministic SML passes through the same semantic-conformance verifier.
+- Corrected inventory/product entity planning so the phrase `Docker support` cannot accidentally route an inventory request into the ticketing/helpdesk entity branch.
+- Runtime/package identity advanced to `2.6.0.dev2`.
+
+### Research impact
+
+- Establishes a measurable stochastic boundary: deterministic canonical semantic collapse precedes the optional LLM, and deterministic verification/compiler stages resume after candidate synthesis.
+- Adds canonical-context and semantic-conformance fingerprints for first-changed-stage attribution and later SSM-Bench v2 controlled experiments.
+- Does not claim new live-provider certification until the V2.0 live DeepSeek gate is rerun against this dev.2 build.
+
 ## v2.6.0-dev — SSM Schrödinger Auto Research
 
 - Restored the certified deterministic FastAPI target omitted from the uploaded GitHub archive.

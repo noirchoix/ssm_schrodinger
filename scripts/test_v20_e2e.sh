@@ -47,7 +47,7 @@ python -m pip install -e ".[dev]"
 export PIPAPI_PYTHON_LOCATION="$(python -c 'import sys; print(sys.executable)')"
 python - <<'PY'
 import ssm
-assert ssm.__version__ == "2.6.0.dev0", ssm.__version__
+assert ssm.__version__ == "2.6.0.dev2", ssm.__version__
 print(f"runtime version: {ssm.__version__}")
 PY
 
@@ -261,14 +261,14 @@ trace = json.loads(Path("$BUILD_ROOT/online_mock_repair/repair_trace.json").read
 assert trace["schema_version"] == "2.0"
 assert trace["final_status"] == "ACCEPTED"
 assert trace["attempts"] == 2
-assert trace["events"][0]["stage"] == "compile"
+assert trace["events"][0]["stage"] == "semantic_conformance"
 assert trace["events"][0]["status"] == "rejected"
 assert trace["events"][-1]["status"] == "accepted"
-print("mock repair trace: rejected attempt 1 -> accepted attempt 2")
+print("mock repair trace: semantic-conformance rejection on attempt 1 -> accepted attempt 2")
 PY
 quality_generated_app "$BUILD_ROOT/online_mock_repair/generated_app"
 
-echo "=== 7. OPTIONAL LIVE DEEPSEEK FORCED-REPAIR VALIDATION ==="
+echo "=== 7. OPTIONAL LIVE DEEPSEEK FORCED-CONFORMANCE-REPAIR VALIDATION ==="
 if [ "$RUN_DEEPSEEK_LIVE" = "1" ]; then
   if [ -f .env.online.local ]; then set -a; source .env.online.local; set +a; fi
   : "${DEEPSEEK_API_KEY:?DEEPSEEK_API_KEY is required when RUN_DEEPSEEK_LIVE=1}"
@@ -293,7 +293,7 @@ assert trace["final_status"] == "ACCEPTED", trace
 assert trace["attempts"] >= 2, trace
 assert trace["events"][0]["status"] == "rejected", trace
 assert trace["events"][-1]["status"] == "accepted", trace
-print("live DeepSeek repair accepted after a forced compiler rejection")
+print("live DeepSeek repair accepted after a forced deterministic semantic-conformance rejection")
 PY
   quality_generated_app "$BUILD_ROOT/deepseek_live_repair/generated_app"
 else
@@ -309,12 +309,14 @@ summary = {
     "schema_version": "2.0",
     "kind": "V20ReleaseGateSummary",
     "status": "PASSED",
-    "runtime_version": "2.6.0.dev0",
+    "runtime_version": "2.6.0.dev2",
     "live_deepseek_executed": "$RUN_DEEPSEEK_LIVE" == "1",
     "gates": [
         "framework_quality",
         "trust_and_provenance",
         "multi_domain_compile",
+        "canonical_semantic_frontend",
+        "semantic_conformance",
         "tenant_repository_enforcement",
         "rbac_runtime",
         "database_audit_persistence",
@@ -334,7 +336,7 @@ PY
 echo "============================================================"
 echo "ALL V2.0.0-dev LOCAL E2E GATES PASSED"
 if [ "$RUN_DEEPSEEK_LIVE" = "1" ]; then
-  echo "LIVE DEEPSEEK FORCED-REPAIR GATE PASSED"
+  echo "LIVE DEEPSEEK FORCED-CONFORMANCE-REPAIR GATE PASSED"
 else
   echo "LIVE DEEPSEEK GATE NOT EXECUTED IN THIS RUN"
 fi

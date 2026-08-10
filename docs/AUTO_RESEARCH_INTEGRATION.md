@@ -2,7 +2,7 @@
 
 ## Status
 
-Implemented development baseline: `2.6.0.dev0`.
+Implemented development baseline: `2.6.0.dev2`.
 
 This release implements the production boundary defined in the three-way integration plan:
 
@@ -28,7 +28,7 @@ The observation and assay planes may qualify or block promotion. They do not mut
 | Differential release assay | Matched records, exact paired sign test, effect direction and magnitude | Implemented |
 | Four-state verdict | `NO_MATERIAL_CHANGE`, `INTENDED_EVOLUTION`, `REGRESSION`, `INCONCLUSIVE` | Implemented |
 | ChangeIntentContract | Protected metrics and approved increase/decrease/absolute-change envelopes | Implemented |
-| Stage attribution | First changed fingerprint across requirements, foundation, architecture, capability, SML, SIR, tree, and quality stages | Implemented |
+| Stage attribution | First changed fingerprint across requirements, foundation, architecture, capability, canonical semantic context, SML, semantic conformance, SIR/tree, and quality stages | Implemented |
 | Hidden labelled slices | Domain pack, backend, tenancy, workflow, update model, and rule-complexity slice assays | Implemented |
 | Frozen SSM-Bench v1 | 30 content-addressed intent cases across the required capability/complexity strata | Implemented |
 | Local registry | Immutable SHA-256 object store with optional detached HMAC-SHA256 integrity record | Implemented |
@@ -45,6 +45,9 @@ intent / README
     -> AppFoundationPlan
     -> ArchitecturePlan
     -> capability composition and negotiation
+    -> CanonicalSemanticContext
+    -> offline deterministic or online constrained SML synthesis
+    -> SemanticConformanceVerifier
     -> SML
     -> SIR and deterministic target generation
     -> certification and generated evidence

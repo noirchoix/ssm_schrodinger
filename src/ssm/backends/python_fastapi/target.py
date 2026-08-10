@@ -2276,6 +2276,7 @@ class PythonFastAPITarget:
                 )
                 repository_names.append(variable)
             repositories_expr = "[" + ", ".join(repository_names) + "]"
+            repository_import_block = "\n                ".join(repository_imports)
             files["tests/conftest.py"] = dedent(f"""
                 from __future__ import annotations
 
@@ -2289,7 +2290,7 @@ class PythonFastAPITarget:
                 from app.main import app
                 from app.platform.audit import audit_log
                 from app.platform.workflow import workflow_runtime
-                {chr(10).join(repository_imports)}
+                {repository_import_block}
 
                 _REPOSITORIES = {repositories_expr}
 

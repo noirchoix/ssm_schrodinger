@@ -28,7 +28,7 @@ Build an in-memory FastAPI Todo API with JWT and CRUD for title, completed, and 
 
 def _environment() -> EnvironmentIdentity:
     return EnvironmentIdentity(
-        compiler_version="2.6.0.dev0",
+        compiler_version="2.6.0.dev2",
         python_version="3.13",
         platform="test",
         environment_lock_sha256="env",
@@ -81,9 +81,14 @@ def test_product_build_emits_canonical_run_record_and_trace(tmp_path: Path) -> N
     assert record.benchmark_case_id == "SSMB-TEST"
     assert record.replicate_id == "3"
     assert record.metrics["build_duration_ms"].measured is True
+    assert record.stage_fingerprints["canonical_semantic_context"]
+    assert record.stage_fingerprints["semantic_conformance"]
     assert record.stage_fingerprints["generated_tree"]
     assert record.trace_ids
     assert (output / "generation_trace.jsonl").exists()
+    assert (output / "canonical_semantic_context.json").exists()
+    assert (output / "semantic_conformance.json").exists()
+    assert (output / "sir.json").exists()
     manifest = json.loads((output / "build_manifest.json").read_text(encoding="utf-8"))
     assert "generation_run.json" in manifest["files"]
     assert "generation_trace.jsonl" in manifest["files"]
@@ -136,6 +141,37 @@ def test_behavioural_contract_is_three_valued() -> None:
     )
     unchecked = verify_contract(optional_contract, run)
     assert unchecked.verdict == "UNCHECKED"
+
+
+def test_stage_attribution_orders_canonical_context_before_sml() -> None:
+    baseline: list[GenerationRunRecord] = []
+    candidate: list[GenerationRunRecord] = []
+    for index in range(6):
+        left = _run(case="CTX", replicate=index, metric=10.0, stage="same")
+        right = _run(case="CTX", replicate=index, metric=8.0, stage="same")
+        left = left.model_copy(
+            update={
+                "stage_fingerprints": {
+                    "requirements": "stable",
+                    "canonical_semantic_context": "ctx-a",
+                    "sml": "sml-a",
+                }
+            }
+        )
+        right = right.model_copy(
+            update={
+                "stage_fingerprints": {
+                    "requirements": "stable",
+                    "canonical_semantic_context": "ctx-b",
+                    "sml": "sml-b",
+                }
+            }
+        )
+        baseline.append(left)
+        candidate.append(right)
+
+    report = compare_releases(baseline, candidate, metrics=["quality"], minimum_pairs=5)
+    assert report.attribution.first_changed_stage == "canonical_semantic_context"
 
 
 def test_content_addressed_registry_detects_tampering(tmp_path: Path) -> None:

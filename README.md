@@ -1,14 +1,18 @@
-# SSM Schrödinger Auto Research — V2.6.0-dev
+# SSM Schrödinger Auto Research — V2.6.0-dev.2
 
 SSM V2.6 preserves the semantic product compiler and adds the Auto-inspired reproducibility and evolution-assurance control planes specified by the three-way integration plan.
 
 ```text
-README / prompt / PRD
+raw intent / input.md
 → typed RequirementsIR
 → AppFoundationPlan
 → constrained ArchitecturePlan
 → capability composition
-→ SML / SIR / logic resolution
+→ capability negotiation
+→ CanonicalSemanticContext
+→ [offline deterministic SML renderer | online constrained SML synthesis]
+→ SemanticConformanceVerifier
+→ SSMCompiler / SIR / logic resolution
 → deterministic FastAPI generation
 → generated product and evidence
 → canonical GenerationRunRecord + strict trace
@@ -16,7 +20,23 @@ README / prompt / PRD
 → paired release assay + four-state verdict
 ```
 
-The compiler remains the sole owner of product semantics and final source generation. The research layer observes and compares behaviour; it may block or qualify promotion, but it cannot silently mutate SML, SIR, target-pack rules, or its own baseline.
+V2.6.0-dev.2 unifies the offline and online product paths at the deterministic semantic front end. A prompt or file is persisted as the run-local `input.md`, collapsed through the same requirements/foundation/architecture/capability stages, and fingerprinted as a `CanonicalSemanticContext` before a synthesis strategy is selected. Online providers receive only the bounded canonical context, not unconstrained raw intent as their semantic authority. Candidate SML must pass deterministic semantic conformance before it may enter `SSMCompiler`.
+
+The compiler remains the sole owner of product semantics and final source generation. The research layer observes and compares behaviour; it may block or qualify promotion, but it cannot silently mutate RequirementsIR, the canonical context, SML, SIR, target-pack rules, or its own baseline.
+
+
+## V2.6.0-dev.2 canonical synthesis boundary
+
+- `CanonicalSemanticContext` is the content-addressed semantic authority shared by offline and online synthesis.
+- `online-build --prompt` and `online-build --file` converge on the same persisted `input.md` boundary.
+- Contradictory, blocking, or unsupported canonical contexts fail before provider invocation.
+- Online providers synthesize SML from a bounded canonical payload; raw input is excluded from the provider-facing semantic payload.
+- `SemanticConformanceVerifier` checks stack, tenancy, audit, capabilities, entities/fields, relationships, explicit roles, workflows, business rules/invariants, routes, reports, and required policy/constraint scaffolding.
+- Semantic-conformance diagnostics are structured and feed bounded online repair.
+- Only conformant SML proceeds to candidate-capability consistency and `SSMCompiler`.
+- Offline deterministic SML is verified by the same conformance boundary, preventing online/offline semantic-policy drift.
+
+See `docs/V2_6_DEV2_CANONICAL_SEMANTIC_CONTEXT.md`.
 
 ## Implemented research boundary
 
@@ -55,6 +75,8 @@ See:
 
 - `docs/AUTO_RESEARCH_INTEGRATION.md`
 - `docs/AUTO_RESEARCH_SCHEMA_REFERENCE.md`
+- `docs/V2_6_DEV2_CANONICAL_SEMANTIC_CONTEXT.md`
+- `docs/V2_6_DEV2_IMPLEMENTATION_REPORT.md`
 - `docs/reference/SSM_Schrodinger_Auto_Research_Three_Way_Integration_Plan.pdf`
 - `docs/V2_1_TO_V2_5_SCHRODINGER_ROADMAP_IMPLEMENTATION.md` for the preserved compiler foundation.
 

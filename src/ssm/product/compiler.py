@@ -23,7 +23,11 @@ from ssm.foundation.renderer import FoundationSMLRenderer
 from ssm.foundation.schemas import AppCapabilityContract, AppFoundationPlan
 from ssm.incremental.engine import IncrementalArtifactWriter, SemanticDependencyGraphBuilder
 from ssm.pipeline import SSMCompiler
-from ssm.product.schemas import CollapsePlan, ProductBuildResult
+from ssm.product.schemas import CanonicalSemanticContext, CollapsePlan, ProductBuildResult
+from ssm.product.semantic_context import (
+    SemanticConformanceVerifier,
+    build_canonical_semantic_context,
+)
 from ssm.requirements.extractor import IntentRequirementsCompiler
 from ssm.requirements.schemas import RequirementsIR
 
@@ -49,6 +53,7 @@ class SchrodingerProductCompiler:
         self.graph_builder = SemanticDependencyGraphBuilder()
         self.writer = IncrementalArtifactWriter()
         self.certifier = SeniorGradeCertifier()
+        self.conformance_verifier = SemanticConformanceVerifier()
 
     def collapse_file(self, path: str | Path) -> CollapsePlan:
         source = Path(path)
@@ -61,6 +66,59 @@ class SchrodingerProductCompiler:
         *,
         trace_recorder: TraceRecorder | None = None,
     ) -> CollapsePlan:
+        context = self.prepare_semantic_context(
+            text,
+            source_name=source_name,
+            trace_recorder=trace_recorder,
+        )
+        sml_text = self._run_stage(
+            trace_recorder,
+            "sml",
+            {
+                "canonical_context": context.semantic_fingerprint,
+                "architecture_pattern": context.architecture.selected_pattern,
+                "strategy": "deterministic_renderer",
+            },
+            lambda: self.renderer.render(
+                context.foundation,
+                architecture_pattern=context.architecture.selected_pattern,
+            ),
+        )
+        conformance = self._run_stage(
+            trace_recorder,
+            "semantic_conformance",
+            {
+                "canonical_context": context.semantic_fingerprint,
+                "candidate_sml_sha256": sha256_value(sml_text),
+            },
+            lambda: self.conformance_verifier.verify(
+                context,
+                sml_text,
+                source_file=f"{source_name}::project.sml.md",
+            ),
+        )
+        if not conformance.accepted:
+            raise IntentCompilationError(self.conformance_verifier.format_diagnostics(conformance))
+        return CollapsePlan(
+            requirements=context.requirements,
+            foundation=context.foundation,
+            architecture=context.architecture,
+            capabilities=context.capabilities,
+            negotiation=context.negotiation,
+            canonical_context=context,
+            sml_text=sml_text,
+            semantic_conformance=conformance,
+        )
+
+    def prepare_semantic_context(
+        self,
+        text: str,
+        source_name: str = "<memory>",
+        *,
+        trace_recorder: TraceRecorder | None = None,
+    ) -> CanonicalSemanticContext:
+        """Collapse raw intent into the deterministic pre-synthesis authority object."""
+
         requirements = self._run_stage(
             trace_recorder,
             "requirements",
@@ -96,22 +154,27 @@ class SchrodingerProductCompiler:
             {"capabilities": capabilities.semantic_fingerprint},
             lambda: self.negotiator.negotiate_plan(foundation),
         )
-        sml_text = self._run_stage(
+        context = self._run_stage(
             trace_recorder,
-            "sml",
-            {"architecture_pattern": architecture.selected_pattern},
-            lambda: self.renderer.render(
-                foundation, architecture_pattern=architecture.selected_pattern
+            "canonical_semantic_context",
+            {
+                "requirements": requirements.semantic_fingerprint,
+                "foundation": sha256_value(foundation.model_dump(mode="json")),
+                "architecture": architecture.semantic_fingerprint,
+                "capabilities": capabilities.semantic_fingerprint,
+                "negotiation": sha256_value(negotiation.model_dump(mode="json")),
+            },
+            lambda: build_canonical_semantic_context(
+                source_name=source_name,
+                source_sha256=sha256_value(text),
+                requirements=requirements,
+                foundation=foundation,
+                architecture=architecture,
+                capabilities=capabilities,
+                negotiation=negotiation,
             ),
         )
-        return CollapsePlan(
-            requirements=requirements,
-            foundation=foundation,
-            architecture=architecture,
-            capabilities=capabilities,
-            negotiation=negotiation,
-            sml_text=sml_text,
-        )
+        return context
 
     def build_file(
         self,
@@ -176,6 +239,11 @@ class SchrodingerProductCompiler:
                 collapse.sml_text, source_file=f"{source_name}::project.sml.md"
             ),
         )
+        sir = compile_result.sir
+        if sir is None:
+            raise IntentCompilationError(
+                "Deterministic compiler returned a successful result without SIR."
+            )
         dependency_graph = self._run_stage(
             trace_recorder,
             "dependency_graph",
@@ -231,7 +299,16 @@ class SchrodingerProductCompiler:
             self._write_json(
                 output / "capability_negotiation.json", collapse.negotiation.model_dump()
             )
+            self._write_json(
+                output / "canonical_semantic_context.json",
+                collapse.canonical_context.model_dump(),
+            )
             (output / "project.sml.md").write_text(collapse.sml_text, encoding="utf-8")
+            self._write_json(
+                output / "semantic_conformance.json",
+                collapse.semantic_conformance.model_dump(),
+            )
+            self._write_json(output / "sir.json", sir.model_dump(mode="json"))
             self._write_json(output / "dependency_graph.json", dependency_graph.model_dump())
             self._write_json(output / "artifact_diff.json", artifact_diff.model_dump())
             self._write_json(output / "certification_report.json", certification.model_dump())
@@ -358,7 +435,9 @@ class SchrodingerProductCompiler:
             "architecture": collapse.architecture.semantic_fingerprint,
             "capabilities": collapse.capabilities.semantic_fingerprint,
             "negotiation": sha256_value(collapse.negotiation.model_dump(mode="json")),
+            "canonical_semantic_context": collapse.canonical_context.semantic_fingerprint,
             "sml": sha256_value(collapse.sml_text),
+            "semantic_conformance": collapse.semantic_conformance.semantic_fingerprint,
             "sir": sha256_value(sir.model_dump(mode="json") if sir is not None else {}),
             "generated_tree": sha256_value(
                 {item.path: sha256_value(item.content) for item in files}
@@ -467,19 +546,31 @@ class SchrodingerProductCompiler:
         return "".join(character.lower() for character in value if character.isalnum())
 
     def _blocking_reasons(self, collapse: CollapsePlan) -> list[str]:
+        reasons = self.semantic_context_blocking_reasons(collapse.canonical_context)
+        if not collapse.semantic_conformance.accepted:
+            reasons.append("Deterministic SML failed canonical semantic conformance.")
+        return reasons
+
+    def semantic_context_blocking_reasons(self, context: CanonicalSemanticContext) -> list[str]:
+        """Return fail-closed reasons that prohibit both offline and online synthesis."""
+
         reasons = [
             f"Contradiction {item.id}: {item.description}"
-            for item in collapse.requirements.contradictions
+            for item in context.requirements.contradictions
         ]
         reasons.extend(
             f"Blocking ambiguity {item.id}: {item.description}"
-            for item in collapse.requirements.ambiguities
+            for item in context.requirements.ambiguities
             if item.blocking
         )
-        if collapse.negotiation.status == "UNSUPPORTED":
+        if context.negotiation.status == "UNSUPPORTED":
             reasons.append("Foundation capability negotiation is UNSUPPORTED.")
-        if collapse.capabilities.status == "UNSUPPORTED":
+        if context.capabilities.status == "UNSUPPORTED":
             reasons.append("Capability composition is UNSUPPORTED.")
+        reasons.extend(
+            f"Canonical semantic context integrity error: {issue}"
+            for issue in context.context_issues
+        )
         return reasons
 
     def _write_build_manifest(self, output: Path) -> None:

@@ -36,7 +36,7 @@ class AppFoundationPlanner:
         pack_ids = [pack.id for pack in packs]
         entities = self._entities_for_prompt(lower)
         routes = self._routes_for_entities(entities, lower)
-        workflows = self._workflows_for_prompt(lower)
+        workflows = self._workflows_for_prompt(lower, entities)
         rules = self._rules_for_prompt(lower)
         relationships = self._relationships_for_prompt(lower, {entity.name for entity in entities})
         roles = self._roles_for_packs(pack_ids)
@@ -156,6 +156,23 @@ class AppFoundationPlanner:
                         "stage": "string required max=40 default=qualified",
                     },
                 ),
+            ]
+        if "inventory" in lower or "product" in lower or "sku" in lower or "stock" in lower:
+            return [
+                AppEntity(
+                    name="Product",
+                    fields={
+                        "id": "uuid primary",
+                        "name": "string required max=120",
+                        "sku": "string unique required max=80",
+                        "quantity": "int default=0",
+                    },
+                    create_fields={
+                        "name": "string required max=120",
+                        "sku": "string unique required max=80",
+                        "quantity": "int default=0",
+                    },
+                )
             ]
         if "ticket" in lower or "helpdesk" in lower or "support" in lower:
             return [
@@ -282,9 +299,10 @@ class AppFoundationPlanner:
                 )
         return routes
 
-    def _workflows_for_prompt(self, lower: str) -> list[AppWorkflow]:
-        if any(word in lower for word in ["approval", "approve", "leave", "expense"]):
-            entity = "LeaveRequest" if "leave" in lower else "ExpenseClaim"
+    def _workflows_for_prompt(self, lower: str, entities: list[AppEntity]) -> list[AppWorkflow]:
+        entity_names = [entity.name for entity in entities]
+        if "leave" in lower and "LeaveRequest" in entity_names:
+            entity = "LeaveRequest"
             return [
                 AppWorkflow(
                     name=f"{entity}Approval",
@@ -298,7 +316,22 @@ class AppFoundationPlanner:
                     actions=["submit", "approve", "reject"],
                 )
             ]
-        if any(word in lower for word in ["ticket", "helpdesk"]):
+        if "expense" in lower and "ExpenseClaim" in entity_names:
+            entity = "ExpenseClaim"
+            return [
+                AppWorkflow(
+                    name=f"{entity}Approval",
+                    entity=entity,
+                    states=["draft", "submitted", "approved", "rejected"],
+                    transitions=[
+                        "draft -> submitted",
+                        "submitted -> approved",
+                        "submitted -> rejected",
+                    ],
+                    actions=["submit", "approve", "reject"],
+                )
+            ]
+        if any(word in lower for word in ["ticket", "helpdesk"]) and "Ticket" in entity_names:
             return [
                 AppWorkflow(
                     name="TicketLifecycle",
@@ -306,6 +339,24 @@ class AppFoundationPlanner:
                     states=["open", "assigned", "resolved", "closed", "reopened"],
                     transitions=["open -> assigned", "assigned -> resolved", "resolved -> closed"],
                     actions=["assign", "resolve", "close", "reopen"],
+                )
+            ]
+        if any(word in lower for word in ["approval", "approve"]) and entity_names:
+            # Generic approval semantics bind to an entity that actually exists in
+            # the deterministic foundation. Domain-specific refinement can happen
+            # only when the upstream planner has established a more specific model.
+            entity = entity_names[0]
+            return [
+                AppWorkflow(
+                    name=f"{entity}Approval",
+                    entity=entity,
+                    states=["draft", "submitted", "approved", "rejected"],
+                    transitions=[
+                        "draft -> submitted",
+                        "submitted -> approved",
+                        "submitted -> rejected",
+                    ],
+                    actions=["submit", "approve", "reject"],
                 )
             ]
         return []
@@ -360,7 +411,7 @@ class AppFoundationPlanner:
                     cardinality="many-to-one",
                 )
             )
-        if "supplier" in lower and "Product" in entity_names:
+        if "supplier" in lower and {"Product", "Supplier"}.issubset(entity_names):
             relationships.append(
                 AppRelationship(
                     name="ProductSupplier",

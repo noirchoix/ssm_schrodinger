@@ -86,9 +86,14 @@ def main(argv: list[str] | None = None) -> int:
 
     online_build_cmd = sub.add_parser(
         "online-build",
-        help="Run online draft -> capability negotiation -> deterministic compile -> optional gates.",
+        help=(
+            "Canonicalize raw intent, synthesize constrained online SML, verify semantic "
+            "conformance, then deterministically compile and run optional gates."
+        ),
     )
-    online_build_cmd.add_argument("--prompt", required=True)
+    online_build_source = online_build_cmd.add_mutually_exclusive_group(required=True)
+    online_build_source.add_argument("--prompt")
+    online_build_source.add_argument("--file")
     online_build_cmd.add_argument("--out", required=True)
     online_build_cmd.add_argument("--agent-mode", choices=["offline", "online"])
     online_build_cmd.add_argument("--provider", choices=["openai", "deepseek", "gemini", "mock"])
@@ -362,8 +367,9 @@ def main(argv: list[str] | None = None) -> int:
                 max_retries=args.max_retries,
                 max_output_tokens=args.max_output_tokens,
             )
+            source_text = Path(args.file).read_text(encoding="utf-8") if args.file else args.prompt
             build_result = OnlineBuildService(settings).build(
-                prompt=args.prompt,
+                prompt=source_text,
                 out_dir=args.out,
                 quality_gates=args.quality_gates,
                 repair_attempts=args.repair_attempts,

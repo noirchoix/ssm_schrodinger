@@ -54,7 +54,7 @@ python -m pip install -e ".[dev]"
 export PIPAPI_PYTHON_LOCATION="$(python -c 'import sys; print(sys.executable)')"
 python - <<'PY'
 import ssm
-assert ssm.__version__ == "2.6.0.dev0", ssm.__version__
+assert ssm.__version__ == "2.6.0.dev2", ssm.__version__
 print(f"runtime version: {ssm.__version__}")
 PY
 

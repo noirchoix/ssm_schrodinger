@@ -16,6 +16,7 @@ from ssm.agents.providers import (
 from ssm.agents.settings import OnlineAgentSettings, SecretRedactor
 from ssm.cli.main import main
 from ssm.pipeline import SSMCompiler
+from ssm.product.compiler import SchrodingerProductCompiler
 
 
 class SequenceProvider:
@@ -76,9 +77,10 @@ def test_online_draft_retries_after_invalid_sml() -> None:
             "provenance": ["test"],
         }
     )
+    valid_sml = SchrodingerProductCompiler().collapse_text("inventory api").sml_text
     valid = json.dumps(
         {
-            "text": "#Project\nname: Inventory API\ndescription: test\n\n#Stack\nbackend: FastAPI\ndatabase: PostgreSQL\nauth: JWT\n\n#DataModel Product\nfields:\n  id: uuid primary\n  name: string required max=120\n  sku: string unique required\n  quantity: int default=0\n\n#DataModel ProductCreate\nfields:\n  name: string required max=120\n  sku: string unique required\n  quantity: int default=0\n\n#Route ListProducts\nmethod: GET\npath: /products\nauth: required\nreturns: Product[]\n\n#Route CreateProduct\nmethod: POST\npath: /products\nauth: required\nbody: ProductCreate\nreturns: Product\n\n#Policy ErrorHandling\nbroad_catch: forbidden\n\n#Constraint Architecture\narchitecture: layered\n",
+            "text": valid_sml,
             "assumptions": [],
             "unresolved_questions": [],
             "provenance": ["test"],

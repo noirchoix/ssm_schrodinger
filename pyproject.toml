@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "semantic-software-markup"
-version = "2.6.0.dev0"
+version = "2.6.0.dev2"
 description = "Schrodinger semantic application compiler with Auto-inspired reproducibility records, trace/replay, behavioural contracts, content-addressed evidence, and evolution-assurance research assays."
 readme = "README.md"
 requires-python = ">=3.11"
