@@ -1,0 +1,12 @@
+{
+  "arm": "no_change_control",
+  "cases": 30,
+  "kind": "Study1RepeatedArm",
+  "mean_oracle_semantic_score": 0.9812037037037037,
+  "records": 300,
+  "replicates": 10,
+  "status_counts": {
+    "CONDITIONAL": 190,
+    "REJECTED": 110
+  }
+}

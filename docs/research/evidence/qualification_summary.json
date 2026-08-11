@@ -1,0 +1,1911 @@
+{
+  "case_count": 30,
+  "cases": [
+    {
+      "actual_outcome": "REJECTED",
+      "blocking": [
+        "Canonical semantic context integrity error: rule PreventNegativeStock references undeclared entity Product"
+      ],
+      "case_id": "SSMB2-001",
+      "duration_ms": 3,
+      "expected_outcome": "GENERATABLE",
+      "expected_outcome_match": false,
+      "harness_ok": true,
+      "oracle": {
+        "ambiguity_detection": 1.0,
+        "capability_obligation_recall": 1.0,
+        "contradiction_detection": 1.0,
+        "foundation_obligation_recall": 0.8571428571428571,
+        "missing": {
+          "capabilities": [],
+          "foundation": [
+            "entity:Product"
+          ],
+          "requirements": []
+        },
+        "requirement_obligation_recall": 1.0,
+        "semantic_oracle_score": 0.9761904761904762,
+        "unsupported_detection": 1.0
+      },
+      "runtime": {
+        "passed": false,
+        "reason": "No generated application: fail-closed or conformance rejection.",
+        "skipped": true
+      },
+      "title": "Inventory Control API"
+    },
+    {
+      "actual_outcome": "GENERATABLE",
+      "blocking": [],
+      "build_status": "CONDITIONAL",
+      "case_id": "SSMB2-002",
+      "duration_ms": 1089,
+      "expected_outcome": "GENERATABLE",
+      "expected_outcome_match": true,
+      "generated_file_count": 76,
+      "harness_ok": true,
+      "oracle": {
+        "ambiguity_detection": 1.0,
+        "capability_obligation_recall": 1.0,
+        "contradiction_detection": 1.0,
+        "foundation_obligation_recall": 0.8333333333333334,
+        "missing": {
+          "capabilities": [],
+          "foundation": [
+            "tenant_enabled"
+          ],
+          "requirements": []
+        },
+        "requirement_obligation_recall": 1.0,
+        "semantic_oracle_score": 0.9722222222222222,
+        "unsupported_detection": 1.0
+      },
+      "runtime": {
+        "checks": [
+          {
+            "check": {
+              "kind": "readyz",
+              "status": 200
+            },
+            "kind": "readyz",
+            "observed": 200,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "route_exists",
+              "method": "GET",
+              "path": "/products"
+            },
+            "kind": "route_exists",
+            "observed": true,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "unauthenticated_status",
+              "method": "GET",
+              "path": "/products",
+              "statuses": [
+                401,
+                403
+              ]
+            },
+            "kind": "unauthenticated_status",
+            "observed": 401,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "authenticated_status",
+              "method": "GET",
+              "path": "/products",
+              "statuses": [
+                200
+              ]
+            },
+            "kind": "authenticated_status",
+            "observed": 200,
+            "ok": true
+          }
+        ],
+        "passed": true
+      },
+      "title": "Inventory Memory Boundary"
+    },
+    {
+      "actual_outcome": "REJECTED",
+      "blocking": [],
+      "case_id": "SSMB2-003",
+      "duration_ms": 5,
+      "expected_outcome": "GENERATABLE",
+      "expected_outcome_match": false,
+      "harness_ok": true,
+      "oracle": {
+        "ambiguity_detection": 1.0,
+        "capability_obligation_recall": 1.0,
+        "contradiction_detection": 1.0,
+        "foundation_obligation_recall": 1.0,
+        "missing": {
+          "capabilities": [],
+          "foundation": [],
+          "requirements": []
+        },
+        "requirement_obligation_recall": 1.0,
+        "semantic_oracle_score": 1.0,
+        "unsupported_detection": 1.0
+      },
+      "runtime": {
+        "passed": false,
+        "reason": "No generated application: fail-closed or conformance rejection.",
+        "skipped": true
+      },
+      "system_error": "IntentCompilationError: Semantic conformance failed:\n- SCV002 [stack]: Stack field 'auth' diverges from canonical semantics. Expected=\"None\"; actual=null.",
+      "title": "Public Todo Board"
+    },
+    {
+      "actual_outcome": "GENERATABLE",
+      "blocking": [],
+      "build_status": "CONDITIONAL",
+      "case_id": "SSMB2-004",
+      "duration_ms": 1545,
+      "expected_outcome": "GENERATABLE",
+      "expected_outcome_match": true,
+      "generated_file_count": 94,
+      "harness_ok": true,
+      "oracle": {
+        "ambiguity_detection": 1.0,
+        "capability_obligation_recall": 1.0,
+        "contradiction_detection": 1.0,
+        "foundation_obligation_recall": 0.8,
+        "missing": {
+          "capabilities": [],
+          "foundation": [
+            "entity:Todo"
+          ],
+          "requirements": []
+        },
+        "requirement_obligation_recall": 1.0,
+        "semantic_oracle_score": 0.9666666666666667,
+        "unsupported_detection": 1.0
+      },
+      "runtime": {
+        "checks": [
+          {
+            "check": {
+              "kind": "readyz",
+              "status": 200
+            },
+            "kind": "readyz",
+            "observed": 200,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "route_exists",
+              "method": "GET",
+              "path": "/todos"
+            },
+            "kind": "route_exists",
+            "observed": false,
+            "ok": false
+          },
+          {
+            "check": {
+              "kind": "unauthenticated_status",
+              "method": "GET",
+              "path": "/todos",
+              "statuses": [
+                401,
+                403
+              ]
+            },
+            "kind": "unauthenticated_status",
+            "observed": 404,
+            "ok": false
+          },
+          {
+            "check": {
+              "kind": "authenticated_status",
+              "method": "GET",
+              "path": "/todos",
+              "statuses": [
+                200
+              ]
+            },
+            "kind": "authenticated_status",
+            "observed": 404,
+            "ok": false
+          },
+          {
+            "check": {
+              "kind": "route_exists",
+              "method": "GET",
+              "path": "/platform/tenant/current"
+            },
+            "kind": "route_exists",
+            "observed": true,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "route_exists",
+              "method": "GET",
+              "path": "/platform/audit/events"
+            },
+            "kind": "route_exists",
+            "observed": true,
+            "ok": true
+          }
+        ],
+        "passed": false
+      },
+      "title": "Tenant Todo Workspace"
+    },
+    {
+      "actual_outcome": "GENERATABLE",
+      "blocking": [],
+      "build_status": "CONDITIONAL",
+      "case_id": "SSMB2-005",
+      "duration_ms": 1428,
+      "expected_outcome": "GENERATABLE",
+      "expected_outcome_match": true,
+      "generated_file_count": 94,
+      "harness_ok": true,
+      "oracle": {
+        "ambiguity_detection": 1.0,
+        "capability_obligation_recall": 1.0,
+        "contradiction_detection": 1.0,
+        "foundation_obligation_recall": 1.0,
+        "missing": {
+          "capabilities": [],
+          "foundation": [],
+          "requirements": []
+        },
+        "requirement_obligation_recall": 1.0,
+        "semantic_oracle_score": 1.0,
+        "unsupported_detection": 1.0
+      },
+      "runtime": {
+        "checks": [
+          {
+            "check": {
+              "kind": "readyz",
+              "status": 200
+            },
+            "kind": "readyz",
+            "observed": 200,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "route_exists",
+              "method": "GET",
+              "path": "/employees"
+            },
+            "kind": "route_exists",
+            "observed": true,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "unauthenticated_status",
+              "method": "GET",
+              "path": "/employees",
+              "statuses": [
+                401,
+                403
+              ]
+            },
+            "kind": "unauthenticated_status",
+            "observed": 401,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "authenticated_status",
+              "method": "GET",
+              "path": "/employees",
+              "statuses": [
+                200
+              ]
+            },
+            "kind": "authenticated_status",
+            "observed": 200,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "route_exists",
+              "method": "GET",
+              "path": "/platform/workflows"
+            },
+            "kind": "route_exists",
+            "observed": true,
+            "ok": true
+          }
+        ],
+        "passed": true
+      },
+      "title": "HR Leave Approval"
+    },
+    {
+      "actual_outcome": "GENERATABLE",
+      "blocking": [],
+      "build_status": "CONDITIONAL",
+      "case_id": "SSMB2-006",
+      "duration_ms": 1216,
+      "expected_outcome": "GENERATABLE",
+      "expected_outcome_match": true,
+      "generated_file_count": 81,
+      "harness_ok": true,
+      "oracle": {
+        "ambiguity_detection": 1.0,
+        "capability_obligation_recall": 1.0,
+        "contradiction_detection": 1.0,
+        "foundation_obligation_recall": 1.0,
+        "missing": {
+          "capabilities": [],
+          "foundation": [],
+          "requirements": []
+        },
+        "requirement_obligation_recall": 1.0,
+        "semantic_oracle_score": 1.0,
+        "unsupported_detection": 1.0
+      },
+      "runtime": {
+        "checks": [
+          {
+            "check": {
+              "kind": "readyz",
+              "status": 200
+            },
+            "kind": "readyz",
+            "observed": 200,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "route_exists",
+              "method": "GET",
+              "path": "/employees"
+            },
+            "kind": "route_exists",
+            "observed": true,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "unauthenticated_status",
+              "method": "GET",
+              "path": "/employees",
+              "statuses": [
+                401,
+                403
+              ]
+            },
+            "kind": "unauthenticated_status",
+            "observed": 401,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "authenticated_status",
+              "method": "GET",
+              "path": "/employees",
+              "statuses": [
+                200
+              ]
+            },
+            "kind": "authenticated_status",
+            "observed": 200,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "route_exists",
+              "method": "GET",
+              "path": "/platform/workflows"
+            },
+            "kind": "route_exists",
+            "observed": true,
+            "ok": true
+          }
+        ],
+        "passed": true
+      },
+      "title": "Small-Team Leave Register"
+    },
+    {
+      "actual_outcome": "REJECTED",
+      "blocking": [
+        "Canonical semantic context integrity error: rule ExpenseAmountMustBePositive references undeclared entity ExpenseClaim"
+      ],
+      "case_id": "SSMB2-007",
+      "duration_ms": 2,
+      "expected_outcome": "GENERATABLE",
+      "expected_outcome_match": false,
+      "harness_ok": true,
+      "oracle": {
+        "ambiguity_detection": 1.0,
+        "capability_obligation_recall": 1.0,
+        "contradiction_detection": 1.0,
+        "foundation_obligation_recall": 0.7142857142857143,
+        "missing": {
+          "capabilities": [],
+          "foundation": [
+            "entity:ExpenseClaim",
+            "workflow:ExpenseApproval"
+          ],
+          "requirements": []
+        },
+        "requirement_obligation_recall": 1.0,
+        "semantic_oracle_score": 0.9523809523809523,
+        "unsupported_detection": 1.0
+      },
+      "runtime": {
+        "passed": false,
+        "reason": "No generated application: fail-closed or conformance rejection.",
+        "skipped": true
+      },
+      "title": "Expense Claim Approval"
+    },
+    {
+      "actual_outcome": "GENERATABLE",
+      "blocking": [],
+      "build_status": "CONDITIONAL",
+      "case_id": "SSMB2-008",
+      "duration_ms": 2176,
+      "expected_outcome": "GENERATABLE",
+      "expected_outcome_match": true,
+      "generated_file_count": 94,
+      "harness_ok": true,
+      "oracle": {
+        "ambiguity_detection": 1.0,
+        "capability_obligation_recall": 1.0,
+        "contradiction_detection": 1.0,
+        "foundation_obligation_recall": 1.0,
+        "missing": {
+          "capabilities": [],
+          "foundation": [],
+          "requirements": []
+        },
+        "requirement_obligation_recall": 1.0,
+        "semantic_oracle_score": 1.0,
+        "unsupported_detection": 1.0
+      },
+      "runtime": {
+        "checks": [
+          {
+            "check": {
+              "kind": "readyz",
+              "status": 200
+            },
+            "kind": "readyz",
+            "observed": 200,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "route_exists",
+              "method": "GET",
+              "path": "/leads"
+            },
+            "kind": "route_exists",
+            "observed": true,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "unauthenticated_status",
+              "method": "GET",
+              "path": "/leads",
+              "statuses": [
+                401,
+                403
+              ]
+            },
+            "kind": "unauthenticated_status",
+            "observed": 401,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "authenticated_status",
+              "method": "GET",
+              "path": "/leads",
+              "statuses": [
+                200
+              ]
+            },
+            "kind": "authenticated_status",
+            "observed": 200,
+            "ok": true
+          }
+        ],
+        "passed": true
+      },
+      "title": "CRM Sales Pipeline"
+    },
+    {
+      "actual_outcome": "GENERATABLE",
+      "blocking": [],
+      "build_status": "CONDITIONAL",
+      "case_id": "SSMB2-009",
+      "duration_ms": 1313,
+      "expected_outcome": "GENERATABLE",
+      "expected_outcome_match": true,
+      "generated_file_count": 88,
+      "harness_ok": true,
+      "oracle": {
+        "ambiguity_detection": 1.0,
+        "capability_obligation_recall": 1.0,
+        "contradiction_detection": 1.0,
+        "foundation_obligation_recall": 1.0,
+        "missing": {
+          "capabilities": [],
+          "foundation": [],
+          "requirements": []
+        },
+        "requirement_obligation_recall": 1.0,
+        "semantic_oracle_score": 1.0,
+        "unsupported_detection": 1.0
+      },
+      "runtime": {
+        "checks": [
+          {
+            "check": {
+              "kind": "readyz",
+              "status": 200
+            },
+            "kind": "readyz",
+            "observed": 200,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "route_exists",
+              "method": "GET",
+              "path": "/tickets"
+            },
+            "kind": "route_exists",
+            "observed": true,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "unauthenticated_status",
+              "method": "GET",
+              "path": "/tickets",
+              "statuses": [
+                401,
+                403
+              ]
+            },
+            "kind": "unauthenticated_status",
+            "observed": 401,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "authenticated_status",
+              "method": "GET",
+              "path": "/tickets",
+              "statuses": [
+                200
+              ]
+            },
+            "kind": "authenticated_status",
+            "observed": 200,
+            "ok": true
+          }
+        ],
+        "passed": true
+      },
+      "title": "Ticket SLA Desk"
+    },
+    {
+      "actual_outcome": "GENERATABLE",
+      "blocking": [],
+      "build_status": "CONDITIONAL",
+      "case_id": "SSMB2-010",
+      "duration_ms": 1483,
+      "expected_outcome": "GENERATABLE",
+      "expected_outcome_match": true,
+      "generated_file_count": 94,
+      "harness_ok": true,
+      "oracle": {
+        "ambiguity_detection": 1.0,
+        "capability_obligation_recall": 1.0,
+        "contradiction_detection": 1.0,
+        "foundation_obligation_recall": 1.0,
+        "missing": {
+          "capabilities": [],
+          "foundation": [],
+          "requirements": []
+        },
+        "requirement_obligation_recall": 1.0,
+        "semantic_oracle_score": 1.0,
+        "unsupported_detection": 1.0
+      },
+      "runtime": {
+        "checks": [
+          {
+            "check": {
+              "kind": "readyz",
+              "status": 200
+            },
+            "kind": "readyz",
+            "observed": 200,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "route_exists",
+              "method": "GET",
+              "path": "/students"
+            },
+            "kind": "route_exists",
+            "observed": true,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "unauthenticated_status",
+              "method": "GET",
+              "path": "/students",
+              "statuses": [
+                401,
+                403
+              ]
+            },
+            "kind": "unauthenticated_status",
+            "observed": 401,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "authenticated_status",
+              "method": "GET",
+              "path": "/students",
+              "statuses": [
+                200
+              ]
+            },
+            "kind": "authenticated_status",
+            "observed": 200,
+            "ok": true
+          }
+        ],
+        "passed": true
+      },
+      "title": "School Records Core"
+    },
+    {
+      "actual_outcome": "REJECTED",
+      "blocking": [
+        "Canonical semantic context integrity error: rule ExpenseAmountMustBePositive references undeclared entity ExpenseClaim"
+      ],
+      "case_id": "SSMB2-011",
+      "duration_ms": 3,
+      "expected_outcome": "GENERATABLE",
+      "expected_outcome_match": false,
+      "harness_ok": true,
+      "oracle": {
+        "ambiguity_detection": 1.0,
+        "capability_obligation_recall": 1.0,
+        "contradiction_detection": 1.0,
+        "foundation_obligation_recall": 0.8,
+        "missing": {
+          "capabilities": [],
+          "foundation": [
+            "entity:ExpenseClaim"
+          ],
+          "requirements": []
+        },
+        "requirement_obligation_recall": 1.0,
+        "semantic_oracle_score": 0.9666666666666667,
+        "unsupported_detection": 1.0
+      },
+      "runtime": {
+        "passed": false,
+        "reason": "No generated application: fail-closed or conformance rejection.",
+        "skipped": true
+      },
+      "title": "Expense Notifications Contract"
+    },
+    {
+      "actual_outcome": "GENERATABLE",
+      "blocking": [],
+      "build_status": "CONDITIONAL",
+      "case_id": "SSMB2-012",
+      "duration_ms": 1404,
+      "expected_outcome": "GENERATABLE",
+      "expected_outcome_match": true,
+      "generated_file_count": 94,
+      "harness_ok": true,
+      "oracle": {
+        "ambiguity_detection": 1.0,
+        "capability_obligation_recall": 1.0,
+        "contradiction_detection": 1.0,
+        "foundation_obligation_recall": 1.0,
+        "missing": {
+          "capabilities": [],
+          "foundation": [],
+          "requirements": []
+        },
+        "requirement_obligation_recall": 1.0,
+        "semantic_oracle_score": 1.0,
+        "unsupported_detection": 1.0
+      },
+      "runtime": {
+        "checks": [
+          {
+            "check": {
+              "kind": "readyz",
+              "status": 200
+            },
+            "kind": "readyz",
+            "observed": 200,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "route_exists",
+              "method": "GET",
+              "path": "/leads"
+            },
+            "kind": "route_exists",
+            "observed": true,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "unauthenticated_status",
+              "method": "GET",
+              "path": "/leads",
+              "statuses": [
+                401,
+                403
+              ]
+            },
+            "kind": "unauthenticated_status",
+            "observed": 401,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "authenticated_status",
+              "method": "GET",
+              "path": "/leads",
+              "statuses": [
+                200
+              ]
+            },
+            "kind": "authenticated_status",
+            "observed": 200,
+            "ok": true
+          }
+        ],
+        "passed": true
+      },
+      "title": "CRM Webhook Delivery Contract"
+    },
+    {
+      "actual_outcome": "GENERATABLE",
+      "blocking": [],
+      "build_status": "CONDITIONAL",
+      "case_id": "SSMB2-013",
+      "duration_ms": 1144,
+      "expected_outcome": "GENERATABLE",
+      "expected_outcome_match": true,
+      "generated_file_count": 76,
+      "harness_ok": true,
+      "oracle": {
+        "ambiguity_detection": 1.0,
+        "capability_obligation_recall": 1.0,
+        "contradiction_detection": 1.0,
+        "foundation_obligation_recall": 1.0,
+        "missing": {
+          "capabilities": [],
+          "foundation": [],
+          "requirements": []
+        },
+        "requirement_obligation_recall": 1.0,
+        "semantic_oracle_score": 1.0,
+        "unsupported_detection": 1.0
+      },
+      "runtime": {
+        "checks": [
+          {
+            "check": {
+              "kind": "readyz",
+              "status": 200
+            },
+            "kind": "readyz",
+            "observed": 200,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "route_exists",
+              "method": "GET",
+              "path": "/tickets"
+            },
+            "kind": "route_exists",
+            "observed": true,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "unauthenticated_status",
+              "method": "GET",
+              "path": "/tickets",
+              "statuses": [
+                401,
+                403
+              ]
+            },
+            "kind": "unauthenticated_status",
+            "observed": 401,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "authenticated_status",
+              "method": "GET",
+              "path": "/tickets",
+              "statuses": [
+                200
+              ]
+            },
+            "kind": "authenticated_status",
+            "observed": 200,
+            "ok": true
+          }
+        ],
+        "passed": true
+      },
+      "title": "Ticket Retention Contract"
+    },
+    {
+      "actual_outcome": "GENERATABLE",
+      "blocking": [],
+      "build_status": "CONDITIONAL",
+      "case_id": "SSMB2-014",
+      "duration_ms": 1433,
+      "expected_outcome": "GENERATABLE",
+      "expected_outcome_match": true,
+      "generated_file_count": 88,
+      "harness_ok": true,
+      "oracle": {
+        "ambiguity_detection": 1.0,
+        "capability_obligation_recall": 1.0,
+        "contradiction_detection": 1.0,
+        "foundation_obligation_recall": 1.0,
+        "missing": {
+          "capabilities": [],
+          "foundation": [],
+          "requirements": []
+        },
+        "requirement_obligation_recall": 1.0,
+        "semantic_oracle_score": 1.0,
+        "unsupported_detection": 1.0
+      },
+      "runtime": {
+        "checks": [
+          {
+            "check": {
+              "kind": "readyz",
+              "status": 200
+            },
+            "kind": "readyz",
+            "observed": 200,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "route_exists",
+              "method": "GET",
+              "path": "/products"
+            },
+            "kind": "route_exists",
+            "observed": true,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "unauthenticated_status",
+              "method": "GET",
+              "path": "/products",
+              "statuses": [
+                401,
+                403
+              ]
+            },
+            "kind": "unauthenticated_status",
+            "observed": 401,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "authenticated_status",
+              "method": "GET",
+              "path": "/products",
+              "statuses": [
+                200
+              ]
+            },
+            "kind": "authenticated_status",
+            "observed": 200,
+            "ok": true
+          }
+        ],
+        "passed": true
+      },
+      "title": "Inventory Observability Profile"
+    },
+    {
+      "actual_outcome": "GENERATABLE",
+      "blocking": [],
+      "build_status": "CONDITIONAL",
+      "case_id": "SSMB2-015",
+      "duration_ms": 1059,
+      "expected_outcome": "GENERATABLE",
+      "expected_outcome_match": true,
+      "generated_file_count": 76,
+      "harness_ok": true,
+      "oracle": {
+        "ambiguity_detection": 1.0,
+        "capability_obligation_recall": 1.0,
+        "contradiction_detection": 1.0,
+        "foundation_obligation_recall": 0.8,
+        "missing": {
+          "capabilities": [],
+          "foundation": [
+            "tenant_enabled"
+          ],
+          "requirements": []
+        },
+        "requirement_obligation_recall": 1.0,
+        "semantic_oracle_score": 0.9666666666666667,
+        "unsupported_detection": 1.0
+      },
+      "runtime": {
+        "checks": [
+          {
+            "check": {
+              "kind": "readyz",
+              "status": 200
+            },
+            "kind": "readyz",
+            "observed": 200,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "route_exists",
+              "method": "GET",
+              "path": "/todos"
+            },
+            "kind": "route_exists",
+            "observed": true,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "unauthenticated_status",
+              "method": "GET",
+              "path": "/todos",
+              "statuses": [
+                401,
+                403
+              ]
+            },
+            "kind": "unauthenticated_status",
+            "observed": 401,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "authenticated_status",
+              "method": "GET",
+              "path": "/todos",
+              "statuses": [
+                200
+              ]
+            },
+            "kind": "authenticated_status",
+            "observed": 200,
+            "ok": true
+          }
+        ],
+        "passed": true
+      },
+      "title": "Todo Use-Case Specification"
+    },
+    {
+      "actual_outcome": "GENERATABLE",
+      "blocking": [],
+      "build_status": "CONDITIONAL",
+      "case_id": "SSMB2-016",
+      "duration_ms": 1359,
+      "expected_outcome": "GENERATABLE",
+      "expected_outcome_match": true,
+      "generated_file_count": 94,
+      "harness_ok": true,
+      "oracle": {
+        "ambiguity_detection": 1.0,
+        "capability_obligation_recall": 1.0,
+        "contradiction_detection": 1.0,
+        "foundation_obligation_recall": 1.0,
+        "missing": {
+          "capabilities": [],
+          "foundation": [],
+          "requirements": []
+        },
+        "requirement_obligation_recall": 1.0,
+        "semantic_oracle_score": 1.0,
+        "unsupported_detection": 1.0
+      },
+      "runtime": {
+        "checks": [
+          {
+            "check": {
+              "kind": "readyz",
+              "status": 200
+            },
+            "kind": "readyz",
+            "observed": 200,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "route_exists",
+              "method": "GET",
+              "path": "/employees"
+            },
+            "kind": "route_exists",
+            "observed": true,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "unauthenticated_status",
+              "method": "GET",
+              "path": "/employees",
+              "statuses": [
+                401,
+                403
+              ]
+            },
+            "kind": "unauthenticated_status",
+            "observed": 401,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "authenticated_status",
+              "method": "GET",
+              "path": "/employees",
+              "statuses": [
+                200
+              ]
+            },
+            "kind": "authenticated_status",
+            "observed": 200,
+            "ok": true
+          }
+        ],
+        "passed": true
+      },
+      "title": "HRIS Boundary"
+    },
+    {
+      "actual_outcome": "REJECTED",
+      "blocking": [
+        "Canonical semantic context integrity error: rule ExpenseAmountMustBePositive references undeclared entity ExpenseClaim"
+      ],
+      "case_id": "SSMB2-017",
+      "duration_ms": 2,
+      "expected_outcome": "GENERATABLE",
+      "expected_outcome_match": false,
+      "harness_ok": true,
+      "oracle": {
+        "ambiguity_detection": 1.0,
+        "capability_obligation_recall": 1.0,
+        "contradiction_detection": 1.0,
+        "foundation_obligation_recall": 0.8,
+        "missing": {
+          "capabilities": [],
+          "foundation": [
+            "entity:ExpenseClaim"
+          ],
+          "requirements": []
+        },
+        "requirement_obligation_recall": 1.0,
+        "semantic_oracle_score": 0.9666666666666667,
+        "unsupported_detection": 1.0
+      },
+      "runtime": {
+        "passed": false,
+        "reason": "No generated application: fail-closed or conformance rejection.",
+        "skipped": true
+      },
+      "title": "Expense External Ledger Ambiguity"
+    },
+    {
+      "actual_outcome": "GENERATABLE",
+      "blocking": [],
+      "build_status": "CONDITIONAL",
+      "case_id": "SSMB2-018",
+      "duration_ms": 1356,
+      "expected_outcome": "GENERATABLE",
+      "expected_outcome_match": true,
+      "generated_file_count": 94,
+      "harness_ok": true,
+      "oracle": {
+        "ambiguity_detection": 1.0,
+        "capability_obligation_recall": 1.0,
+        "contradiction_detection": 1.0,
+        "foundation_obligation_recall": 1.0,
+        "missing": {
+          "capabilities": [],
+          "foundation": [],
+          "requirements": []
+        },
+        "requirement_obligation_recall": 1.0,
+        "semantic_oracle_score": 1.0,
+        "unsupported_detection": 1.0
+      },
+      "runtime": {
+        "checks": [
+          {
+            "check": {
+              "kind": "readyz",
+              "status": 200
+            },
+            "kind": "readyz",
+            "observed": 200,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "route_exists",
+              "method": "GET",
+              "path": "/leads"
+            },
+            "kind": "route_exists",
+            "observed": true,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "unauthenticated_status",
+              "method": "GET",
+              "path": "/leads",
+              "statuses": [
+                401,
+                403
+              ]
+            },
+            "kind": "unauthenticated_status",
+            "observed": 401,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "authenticated_status",
+              "method": "GET",
+              "path": "/leads",
+              "statuses": [
+                200
+              ]
+            },
+            "kind": "authenticated_status",
+            "observed": 200,
+            "ok": true
+          }
+        ],
+        "passed": true
+      },
+      "title": "CRM Explicit Workflow"
+    },
+    {
+      "actual_outcome": "GENERATABLE",
+      "blocking": [],
+      "build_status": "CONDITIONAL",
+      "case_id": "SSMB2-019",
+      "duration_ms": 1306,
+      "expected_outcome": "GENERATABLE",
+      "expected_outcome_match": true,
+      "generated_file_count": 88,
+      "harness_ok": true,
+      "oracle": {
+        "ambiguity_detection": 1.0,
+        "capability_obligation_recall": 1.0,
+        "contradiction_detection": 1.0,
+        "foundation_obligation_recall": 0.7142857142857143,
+        "missing": {
+          "capabilities": [],
+          "foundation": [
+            "workflow:TicketAssignment",
+            "business_rule:AssignmentTeamMatch"
+          ],
+          "requirements": []
+        },
+        "requirement_obligation_recall": 1.0,
+        "semantic_oracle_score": 0.9523809523809523,
+        "unsupported_detection": 1.0
+      },
+      "runtime": {
+        "checks": [
+          {
+            "check": {
+              "kind": "readyz",
+              "status": 200
+            },
+            "kind": "readyz",
+            "observed": 200,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "route_exists",
+              "method": "GET",
+              "path": "/tickets"
+            },
+            "kind": "route_exists",
+            "observed": true,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "unauthenticated_status",
+              "method": "GET",
+              "path": "/tickets",
+              "statuses": [
+                401,
+                403
+              ]
+            },
+            "kind": "unauthenticated_status",
+            "observed": 401,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "authenticated_status",
+              "method": "GET",
+              "path": "/tickets",
+              "statuses": [
+                200
+              ]
+            },
+            "kind": "authenticated_status",
+            "observed": 200,
+            "ok": true
+          }
+        ],
+        "passed": true
+      },
+      "title": "Ticket Assignment Context Rule"
+    },
+    {
+      "actual_outcome": "GENERATABLE",
+      "blocking": [],
+      "build_status": "CONDITIONAL",
+      "case_id": "SSMB2-020",
+      "duration_ms": 1082,
+      "expected_outcome": "GENERATABLE",
+      "expected_outcome_match": true,
+      "generated_file_count": 81,
+      "harness_ok": true,
+      "oracle": {
+        "ambiguity_detection": 1.0,
+        "capability_obligation_recall": 1.0,
+        "contradiction_detection": 1.0,
+        "foundation_obligation_recall": 0.8571428571428571,
+        "missing": {
+          "capabilities": [],
+          "foundation": [
+            "business_rule:EnrollmentDateOrder"
+          ],
+          "requirements": []
+        },
+        "requirement_obligation_recall": 1.0,
+        "semantic_oracle_score": 0.9761904761904762,
+        "unsupported_detection": 1.0
+      },
+      "runtime": {
+        "checks": [
+          {
+            "check": {
+              "kind": "readyz",
+              "status": 200
+            },
+            "kind": "readyz",
+            "observed": 200,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "route_exists",
+              "method": "GET",
+              "path": "/students"
+            },
+            "kind": "route_exists",
+            "observed": true,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "unauthenticated_status",
+              "method": "GET",
+              "path": "/students",
+              "statuses": [
+                401,
+                403
+              ]
+            },
+            "kind": "unauthenticated_status",
+            "observed": 401,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "authenticated_status",
+              "method": "GET",
+              "path": "/students",
+              "statuses": [
+                200
+              ]
+            },
+            "kind": "authenticated_status",
+            "observed": 200,
+            "ok": true
+          }
+        ],
+        "passed": true
+      },
+      "title": "School Enrollment Temporal Rule"
+    },
+    {
+      "actual_outcome": "GENERATABLE",
+      "blocking": [],
+      "build_status": "CONDITIONAL",
+      "case_id": "SSMB2-021",
+      "duration_ms": 1102,
+      "expected_outcome": "GENERATABLE",
+      "expected_outcome_match": true,
+      "generated_file_count": 76,
+      "harness_ok": true,
+      "oracle": {
+        "ambiguity_detection": 1.0,
+        "capability_obligation_recall": 1.0,
+        "contradiction_detection": 1.0,
+        "foundation_obligation_recall": 0.8571428571428571,
+        "missing": {
+          "capabilities": [],
+          "foundation": [
+            "business_rule:QuantityWithinMaximum"
+          ],
+          "requirements": []
+        },
+        "requirement_obligation_recall": 1.0,
+        "semantic_oracle_score": 0.9761904761904762,
+        "unsupported_detection": 1.0
+      },
+      "runtime": {
+        "checks": [
+          {
+            "check": {
+              "kind": "readyz",
+              "status": 200
+            },
+            "kind": "readyz",
+            "observed": 200,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "route_exists",
+              "method": "GET",
+              "path": "/products"
+            },
+            "kind": "route_exists",
+            "observed": true,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "unauthenticated_status",
+              "method": "GET",
+              "path": "/products",
+              "statuses": [
+                401,
+                403
+              ]
+            },
+            "kind": "unauthenticated_status",
+            "observed": 401,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "authenticated_status",
+              "method": "GET",
+              "path": "/products",
+              "statuses": [
+                200
+              ]
+            },
+            "kind": "authenticated_status",
+            "observed": 200,
+            "ok": true
+          }
+        ],
+        "passed": true
+      },
+      "title": "Inventory Maximum Stock Rule"
+    },
+    {
+      "actual_outcome": "GENERATABLE",
+      "blocking": [],
+      "build_status": "CONDITIONAL",
+      "case_id": "SSMB2-022",
+      "duration_ms": 1223,
+      "expected_outcome": "GENERATABLE",
+      "expected_outcome_match": true,
+      "generated_file_count": 81,
+      "harness_ok": true,
+      "oracle": {
+        "ambiguity_detection": 1.0,
+        "capability_obligation_recall": 1.0,
+        "contradiction_detection": 1.0,
+        "foundation_obligation_recall": 0.75,
+        "missing": {
+          "capabilities": [],
+          "foundation": [
+            "business_rule:LeaveRequestDateValidation",
+            "business_rule:LeaveRequestMaxDuration"
+          ],
+          "requirements": []
+        },
+        "requirement_obligation_recall": 1.0,
+        "semantic_oracle_score": 0.9583333333333334,
+        "unsupported_detection": 1.0
+      },
+      "runtime": {
+        "checks": [
+          {
+            "check": {
+              "kind": "readyz",
+              "status": 200
+            },
+            "kind": "readyz",
+            "observed": 200,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "route_exists",
+              "method": "GET",
+              "path": "/employees"
+            },
+            "kind": "route_exists",
+            "observed": true,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "unauthenticated_status",
+              "method": "GET",
+              "path": "/employees",
+              "statuses": [
+                401,
+                403
+              ]
+            },
+            "kind": "unauthenticated_status",
+            "observed": 401,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "authenticated_status",
+              "method": "GET",
+              "path": "/employees",
+              "statuses": [
+                200
+              ]
+            },
+            "kind": "authenticated_status",
+            "observed": 200,
+            "ok": true
+          }
+        ],
+        "passed": true
+      },
+      "title": "Leave Date Validation"
+    },
+    {
+      "actual_outcome": "REJECTED",
+      "blocking": [
+        "Canonical semantic context integrity error: rule ExpenseAmountMustBePositive references undeclared entity ExpenseClaim"
+      ],
+      "case_id": "SSMB2-023",
+      "duration_ms": 2,
+      "expected_outcome": "GENERATABLE",
+      "expected_outcome_match": false,
+      "harness_ok": true,
+      "oracle": {
+        "ambiguity_detection": 1.0,
+        "capability_obligation_recall": 1.0,
+        "contradiction_detection": 1.0,
+        "foundation_obligation_recall": 0.6666666666666666,
+        "missing": {
+          "capabilities": [],
+          "foundation": [
+            "entity:ExpenseClaim",
+            "business_rule:ApprovalLimit"
+          ],
+          "requirements": []
+        },
+        "requirement_obligation_recall": 1.0,
+        "semantic_oracle_score": 0.9444444444444444,
+        "unsupported_detection": 1.0
+      },
+      "runtime": {
+        "passed": false,
+        "reason": "No generated application: fail-closed or conformance rejection.",
+        "skipped": true
+      },
+      "title": "Expense Approval Limit Context"
+    },
+    {
+      "actual_outcome": "GENERATABLE",
+      "blocking": [],
+      "build_status": "CONDITIONAL",
+      "case_id": "SSMB2-024",
+      "duration_ms": 1399,
+      "expected_outcome": "GENERATABLE",
+      "expected_outcome_match": true,
+      "generated_file_count": 88,
+      "harness_ok": true,
+      "oracle": {
+        "ambiguity_detection": 1.0,
+        "capability_obligation_recall": 1.0,
+        "contradiction_detection": 1.0,
+        "foundation_obligation_recall": 1.0,
+        "missing": {
+          "capabilities": [],
+          "foundation": [],
+          "requirements": []
+        },
+        "requirement_obligation_recall": 1.0,
+        "semantic_oracle_score": 1.0,
+        "unsupported_detection": 1.0
+      },
+      "runtime": {
+        "checks": [
+          {
+            "check": {
+              "kind": "readyz",
+              "status": 200
+            },
+            "kind": "readyz",
+            "observed": 200,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "route_exists",
+              "method": "GET",
+              "path": "/todos"
+            },
+            "kind": "route_exists",
+            "observed": true,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "unauthenticated_status",
+              "method": "GET",
+              "path": "/todos",
+              "statuses": [
+                401,
+                403
+              ]
+            },
+            "kind": "unauthenticated_status",
+            "observed": 401,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "authenticated_status",
+              "method": "GET",
+              "path": "/todos",
+              "statuses": [
+                200
+              ]
+            },
+            "kind": "authenticated_status",
+            "observed": 200,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "route_exists",
+              "method": "GET",
+              "path": "/platform/roles"
+            },
+            "kind": "route_exists",
+            "observed": true,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "route_exists",
+              "method": "GET",
+              "path": "/platform/audit/events"
+            },
+            "kind": "route_exists",
+            "observed": true,
+            "ok": true
+          }
+        ],
+        "passed": true
+      },
+      "title": "Tenant Todo Audit RBAC"
+    },
+    {
+      "actual_outcome": "REJECTED",
+      "blocking": [
+        "Contradiction ctr-d2d93fef8baa: The source requests both MultiTenant and SingleTenant."
+      ],
+      "case_id": "SSMB2-025",
+      "duration_ms": 2,
+      "expected_outcome": "GENERATABLE",
+      "expected_outcome_match": false,
+      "harness_ok": true,
+      "oracle": {
+        "ambiguity_detection": 1.0,
+        "capability_obligation_recall": 1.0,
+        "contradiction_detection": 1.0,
+        "foundation_obligation_recall": 0.8333333333333334,
+        "missing": {
+          "capabilities": [],
+          "foundation": [
+            "tenant_enabled"
+          ],
+          "requirements": []
+        },
+        "requirement_obligation_recall": 1.0,
+        "semantic_oracle_score": 0.9722222222222222,
+        "unsupported_detection": 1.0
+      },
+      "runtime": {
+        "passed": false,
+        "reason": "No generated application: fail-closed or conformance rejection.",
+        "skipped": true
+      },
+      "title": "Single-Tenant HR Register"
+    },
+    {
+      "actual_outcome": "GENERATABLE",
+      "blocking": [],
+      "build_status": "CONDITIONAL",
+      "case_id": "SSMB2-026",
+      "duration_ms": 1482,
+      "expected_outcome": "GENERATABLE",
+      "expected_outcome_match": true,
+      "generated_file_count": 94,
+      "harness_ok": true,
+      "oracle": {
+        "ambiguity_detection": 1.0,
+        "capability_obligation_recall": 1.0,
+        "contradiction_detection": 1.0,
+        "foundation_obligation_recall": 1.0,
+        "missing": {
+          "capabilities": [],
+          "foundation": [],
+          "requirements": []
+        },
+        "requirement_obligation_recall": 1.0,
+        "semantic_oracle_score": 1.0,
+        "unsupported_detection": 1.0
+      },
+      "runtime": {
+        "checks": [
+          {
+            "check": {
+              "kind": "readyz",
+              "status": 200
+            },
+            "kind": "readyz",
+            "observed": 200,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "route_exists",
+              "method": "GET",
+              "path": "/employees"
+            },
+            "kind": "route_exists",
+            "observed": true,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "unauthenticated_status",
+              "method": "GET",
+              "path": "/employees",
+              "statuses": [
+                401,
+                403
+              ]
+            },
+            "kind": "unauthenticated_status",
+            "observed": 401,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "authenticated_status",
+              "method": "GET",
+              "path": "/employees",
+              "statuses": [
+                200
+              ]
+            },
+            "kind": "authenticated_status",
+            "observed": 200,
+            "ok": true
+          }
+        ],
+        "passed": true
+      },
+      "title": "Narrative HR Inference"
+    },
+    {
+      "actual_outcome": "REJECTED",
+      "blocking": [
+        "Contradiction ctr-815878c11efe: The source requests both PostgreSQL and InMemory."
+      ],
+      "case_id": "SSMB2-027",
+      "duration_ms": 2,
+      "expected_outcome": "REJECTED",
+      "expected_outcome_match": true,
+      "harness_ok": true,
+      "oracle": {
+        "ambiguity_detection": 1.0,
+        "capability_obligation_recall": 1.0,
+        "contradiction_detection": 1.0,
+        "foundation_obligation_recall": 1.0,
+        "missing": {
+          "capabilities": [],
+          "foundation": [],
+          "requirements": []
+        },
+        "requirement_obligation_recall": 1.0,
+        "semantic_oracle_score": 1.0,
+        "unsupported_detection": 1.0
+      },
+      "runtime": {
+        "passed": true,
+        "reason": "No generated application: fail-closed or conformance rejection.",
+        "skipped": true
+      },
+      "title": "Contradictory Persistence Brief"
+    },
+    {
+      "actual_outcome": "REJECTED",
+      "blocking": [
+        "Foundation capability negotiation is UNSUPPORTED.",
+        "Canonical semantic context integrity error: rule PreventNegativeStock references undeclared entity Product"
+      ],
+      "case_id": "SSMB2-028",
+      "duration_ms": 2,
+      "expected_outcome": "REJECTED",
+      "expected_outcome_match": true,
+      "harness_ok": true,
+      "oracle": {
+        "ambiguity_detection": 1.0,
+        "capability_obligation_recall": 1.0,
+        "contradiction_detection": 1.0,
+        "foundation_obligation_recall": 0.6666666666666666,
+        "missing": {
+          "capabilities": [],
+          "foundation": [
+            "entity:Product"
+          ],
+          "requirements": []
+        },
+        "requirement_obligation_recall": 1.0,
+        "semantic_oracle_score": 0.9444444444444444,
+        "unsupported_detection": 1.0
+      },
+      "runtime": {
+        "passed": true,
+        "reason": "No generated application: fail-closed or conformance rejection.",
+        "skipped": true
+      },
+      "title": "Unsupported Payment Gateway"
+    },
+    {
+      "actual_outcome": "REJECTED",
+      "blocking": [
+        "Foundation capability negotiation is UNSUPPORTED."
+      ],
+      "case_id": "SSMB2-029",
+      "duration_ms": 1,
+      "expected_outcome": "REJECTED",
+      "expected_outcome_match": true,
+      "harness_ok": true,
+      "oracle": {
+        "ambiguity_detection": 1.0,
+        "capability_obligation_recall": 1.0,
+        "contradiction_detection": 1.0,
+        "foundation_obligation_recall": 0.6666666666666666,
+        "missing": {
+          "capabilities": [],
+          "foundation": [
+            "entity:Todo"
+          ],
+          "requirements": []
+        },
+        "requirement_obligation_recall": 1.0,
+        "semantic_oracle_score": 0.9444444444444444,
+        "unsupported_detection": 1.0
+      },
+      "runtime": {
+        "passed": true,
+        "reason": "No generated application: fail-closed or conformance rejection.",
+        "skipped": true
+      },
+      "title": "Unsupported Native Mobile Requirement"
+    },
+    {
+      "actual_outcome": "REJECTED",
+      "blocking": [
+        "Blocking ambiguity amb-2cc497857559: No explicit domain entity was stated; the generic Product fallback is not sufficient for deterministic generation."
+      ],
+      "case_id": "SSMB2-030",
+      "duration_ms": 1,
+      "expected_outcome": "REJECTED",
+      "expected_outcome_match": true,
+      "harness_ok": true,
+      "oracle": {
+        "ambiguity_detection": 1.0,
+        "capability_obligation_recall": 1.0,
+        "contradiction_detection": 1.0,
+        "foundation_obligation_recall": 1.0,
+        "missing": {
+          "capabilities": [],
+          "foundation": [],
+          "requirements": []
+        },
+        "requirement_obligation_recall": 1.0,
+        "semantic_oracle_score": 1.0,
+        "unsupported_detection": 1.0
+      },
+      "runtime": {
+        "passed": true,
+        "reason": "No generated application: fail-closed or conformance rejection.",
+        "skipped": true
+      },
+      "title": "Underspecified Operations Service"
+    }
+  ],
+  "expected_outcome_matches": 23,
+  "harness_errors": 0,
+  "harness_qualified": true,
+  "kind": "SSMBenchV2Qualification",
+  "mean_semantic_oracle_score": 0.9812037037037037,
+  "runtime_executed": 19,
+  "runtime_passes": 22,
+  "schema_version": "1.0"
+}

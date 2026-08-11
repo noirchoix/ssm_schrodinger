@@ -1,0 +1,148 @@
+{
+  "component_count": 28,
+  "component_root_sha256": "69fec3e9d74212411c42a602397c17a22f151a1a8cea853ede1e8ea80ad6dbbd",
+  "entries": [
+    {
+      "bytes": 1179,
+      "path": "00_lock/README_FREEZE.md",
+      "sha256": "c805a661f07545c432ae6070bfeaf8f935dd2b6d903cf8ad305a58e66ca60bfc"
+    },
+    {
+      "bytes": 1958,
+      "path": "00_lock/STUDY_1_FREEZE_LOCK.json",
+      "sha256": "984a10c501a1e51755e365df4ff89530118412ac4fb7993d5063a7c84873d20f"
+    },
+    {
+      "bytes": 7223761,
+      "path": "01_evidence/study1_local_replication.zip",
+      "sha256": "36cfa48ace5278f753828d0a7f3075613301ffb8a691332b1f4f91e449971a76"
+    },
+    {
+      "bytes": 4017977,
+      "path": "01_evidence/study1b_online_qualification.zip",
+      "sha256": "75e549b8383d3e4ddd4e25f314e8df2a95d8c880cc4a624ca3a33e32af9bb727"
+    },
+    {
+      "bytes": 34452468,
+      "path": "01_evidence/study1b_online_repeated.zip",
+      "sha256": "12c72286795dcbec7be48c166f4d46d00f8828f697a542d63ad5d96599585b82"
+    },
+    {
+      "bytes": 290790,
+      "path": "02_summaries/study1a_analysis.json",
+      "sha256": "f2944ad3b56a89b936b9b9619e10880c0a8b6bc720c9487f408f1f3a49b0aedb"
+    },
+    {
+      "bytes": 242,
+      "path": "02_summaries/study1a_baseline_arm_summary.json",
+      "sha256": "1b77d09844e54ff4e81e990ebf53493a026a7eb70381063c38f8925f34d534cf"
+    },
+    {
+      "bytes": 251,
+      "path": "02_summaries/study1a_control_arm_summary.json",
+      "sha256": "0afc97fa58961200af95cd6f38c195226734905348167fb67b3490c66eb1083a"
+    },
+    {
+      "bytes": 100331,
+      "path": "02_summaries/study1b_analysis.json",
+      "sha256": "fe5587f70ff83c4d8529ec6ea7245f1b9ae120fc4440717d000169da3032b8ad"
+    },
+    {
+      "bytes": 63238,
+      "path": "02_summaries/study1b_qualification_summary.json",
+      "sha256": "02ee64bc40ca1ea7255aa9bf44d57bbcdbd14d3b804257ee6c37a670379a6e46"
+    },
+    {
+      "bytes": 1028,
+      "path": "02_summaries/study1b_repeated_arm_summary.json",
+      "sha256": "09eaec24dc2071817f406c03548e80b03b3367f40773a1c36fdef464f1a85994"
+    },
+    {
+      "bytes": 13153,
+      "path": "03_reports/SSM_Portfolio_Research_Article_Study1_Complete.md",
+      "sha256": "1f4cbbcb4419d6cd53e9b3556bf2529919302284d7f7985e64993eed704b6bc4"
+    },
+    {
+      "bytes": 2347,
+      "path": "03_reports/SSM_Study_1B_Methodological_Interpretation_Note.md",
+      "sha256": "bb3b5840c610e8fc002f9efa401d4b7cb9eae682240846d925d5c74074325409"
+    },
+    {
+      "bytes": 13842,
+      "path": "03_reports/SSM_Study_1_Combined_Results_Report.md",
+      "sha256": "00ac3119dd0a549d199f445a9504971207f166265fb0247b012611a6e8094299"
+    },
+    {
+      "bytes": 1156,
+      "path": "04_protocols/REPRODUCIBILITY_AND_REPLICATION.md",
+      "sha256": "b0a6ed5be8e888b53c9590c734088949497a6f53577cedced32c78485609f38b"
+    },
+    {
+      "bytes": 3592,
+      "path": "04_protocols/SSM_BENCH_V2_CASE_MATRIX.md",
+      "sha256": "29781838d1262454e29f1ba303e4627c28b34115b5d4d9c67a549b87d3343e0e"
+    },
+    {
+      "bytes": 2762,
+      "path": "04_protocols/SSM_BENCH_V2_DESIGN.md",
+      "sha256": "61d8292ae32278f77c5f70146d4d45ce7db6305958a285f4de918ee819e3faed"
+    },
+    {
+      "bytes": 770,
+      "path": "04_protocols/SSM_BENCH_V2_README.md",
+      "sha256": "f49de61680e718754893ac899771350cc3d547aa9df1cf2208b65fa56dffcef8"
+    },
+    {
+      "bytes": 13499,
+      "path": "04_protocols/SSM_BENCH_V2_manifest.json",
+      "sha256": "41c815ae25f17fea534602c0af7612d4a8ed36909b91d372b3396caf127f6403"
+    },
+    {
+      "bytes": 5159,
+      "path": "04_protocols/STUDY_1B_PROTOCOL.md",
+      "sha256": "aa5caa70a4efe25f45fda55e7955edf5eac761a436073dc41a841d68ea75b952"
+    },
+    {
+      "bytes": 1476,
+      "path": "04_protocols/STUDY_1_EXPERIMENT_MANIFEST.json",
+      "sha256": "a18a2e6a351d447c863b45672a771280a8822e36824696ed33e9a6ac5861fb6a"
+    },
+    {
+      "bytes": 6792,
+      "path": "04_protocols/STUDY_1_PROTOCOL.md",
+      "sha256": "ee4cb6bb146b275df2a86e2345db00d41868889f4131bcc8fac183a542cc2183"
+    },
+    {
+      "bytes": 776865,
+      "path": "05_source_reconstruction/ssm_schrodinger_v2_6_dev2_study1_source.zip",
+      "sha256": "03161645583494493590e78bcc0ddd3493fbcd176657b7d09acf377a7ab7e4b7"
+    },
+    {
+      "bytes": 645936,
+      "path": "05_source_reconstruction/ssm_v2_6_dev2_study1_research_layer.patch",
+      "sha256": "429cb1fb83f25d7f4ecffe48df9b7ac8c126cacba2ea6d9c17dfb0d7a4f0dee7"
+    },
+    {
+      "bytes": 18870,
+      "path": "05_source_reconstruction/ssm_v2_6_dev2_study1_windows_validation_hotfix.patch",
+      "sha256": "cf428a600e49fb588ee4a21f91b99823c5868e691b2572f2debf4a3d6f28651b"
+    },
+    {
+      "bytes": 1881,
+      "path": "05_source_reconstruction/ssm_v2_6_dev2_study1b_env_online_local_hotfix.patch",
+      "sha256": "049a9bfe47a985c5d25e12ffc28f211bdeef3db575371d2282489ba4181687b8"
+    },
+    {
+      "bytes": 527,
+      "path": "05_source_reconstruction/ssm_v2_6_dev2_study1b_mypy_counter_annotations_hotfix.patch",
+      "sha256": "01392890afd86da59f2e2690a5a35bb39d532e845b82ac544d24b9903fb4452c"
+    },
+    {
+      "bytes": 58664,
+      "path": "05_source_reconstruction/ssm_v2_6_dev2_study1b_online_harness.patch",
+      "sha256": "b530a780222ec9377d70814a191ddf17e7b331eb48962c1d577734f93b3ab73d"
+    }
+  ],
+  "kind": "SSMStudy1FreezeManifest",
+  "schema_version": "1.0"
+}

@@ -1,0 +1,288 @@
+{
+  "findings": [
+    {
+      "blocking": [
+        "Canonical semantic context integrity error: rule PreventNegativeStock references undeclared entity Product"
+      ],
+      "case_id": "SSMB2-001",
+      "oracle_missing": {
+        "capabilities": [],
+        "foundation": [
+          "entity:Product"
+        ],
+        "requirements": []
+      },
+      "system_error": null,
+      "type": "unexpected_rejection"
+    },
+    {
+      "case_id": "SSMB2-002",
+      "oracle_missing": {
+        "capabilities": [],
+        "foundation": [
+          "tenant_enabled"
+        ],
+        "requirements": []
+      },
+      "score": 0.9722222222222222,
+      "type": "semantic_oracle_gap"
+    },
+    {
+      "blocking": [],
+      "case_id": "SSMB2-003",
+      "oracle_missing": {
+        "capabilities": [],
+        "foundation": [],
+        "requirements": []
+      },
+      "system_error": "IntentCompilationError: Semantic conformance failed:\n- SCV002 [stack]: Stack field 'auth' diverges from canonical semantics. Expected=\"None\"; actual=null.",
+      "type": "unexpected_rejection"
+    },
+    {
+      "case_id": "SSMB2-004",
+      "oracle_missing": {
+        "capabilities": [],
+        "foundation": [
+          "entity:Todo"
+        ],
+        "requirements": []
+      },
+      "runtime": {
+        "checks": [
+          {
+            "check": {
+              "kind": "readyz",
+              "status": 200
+            },
+            "kind": "readyz",
+            "observed": 200,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "route_exists",
+              "method": "GET",
+              "path": "/todos"
+            },
+            "kind": "route_exists",
+            "observed": false,
+            "ok": false
+          },
+          {
+            "check": {
+              "kind": "unauthenticated_status",
+              "method": "GET",
+              "path": "/todos",
+              "statuses": [
+                401,
+                403
+              ]
+            },
+            "kind": "unauthenticated_status",
+            "observed": 404,
+            "ok": false
+          },
+          {
+            "check": {
+              "kind": "authenticated_status",
+              "method": "GET",
+              "path": "/todos",
+              "statuses": [
+                200
+              ]
+            },
+            "kind": "authenticated_status",
+            "observed": 404,
+            "ok": false
+          },
+          {
+            "check": {
+              "kind": "route_exists",
+              "method": "GET",
+              "path": "/platform/tenant/current"
+            },
+            "kind": "route_exists",
+            "observed": true,
+            "ok": true
+          },
+          {
+            "check": {
+              "kind": "route_exists",
+              "method": "GET",
+              "path": "/platform/audit/events"
+            },
+            "kind": "route_exists",
+            "observed": true,
+            "ok": true
+          }
+        ],
+        "passed": false
+      },
+      "type": "runtime_contract_failure"
+    },
+    {
+      "blocking": [
+        "Canonical semantic context integrity error: rule ExpenseAmountMustBePositive references undeclared entity ExpenseClaim"
+      ],
+      "case_id": "SSMB2-007",
+      "oracle_missing": {
+        "capabilities": [],
+        "foundation": [
+          "entity:ExpenseClaim",
+          "workflow:ExpenseApproval"
+        ],
+        "requirements": []
+      },
+      "system_error": null,
+      "type": "unexpected_rejection"
+    },
+    {
+      "blocking": [
+        "Canonical semantic context integrity error: rule ExpenseAmountMustBePositive references undeclared entity ExpenseClaim"
+      ],
+      "case_id": "SSMB2-011",
+      "oracle_missing": {
+        "capabilities": [],
+        "foundation": [
+          "entity:ExpenseClaim"
+        ],
+        "requirements": []
+      },
+      "system_error": null,
+      "type": "unexpected_rejection"
+    },
+    {
+      "case_id": "SSMB2-015",
+      "oracle_missing": {
+        "capabilities": [],
+        "foundation": [
+          "tenant_enabled"
+        ],
+        "requirements": []
+      },
+      "score": 0.9666666666666667,
+      "type": "semantic_oracle_gap"
+    },
+    {
+      "blocking": [
+        "Canonical semantic context integrity error: rule ExpenseAmountMustBePositive references undeclared entity ExpenseClaim"
+      ],
+      "case_id": "SSMB2-017",
+      "oracle_missing": {
+        "capabilities": [],
+        "foundation": [
+          "entity:ExpenseClaim"
+        ],
+        "requirements": []
+      },
+      "system_error": null,
+      "type": "unexpected_rejection"
+    },
+    {
+      "case_id": "SSMB2-019",
+      "oracle_missing": {
+        "capabilities": [],
+        "foundation": [
+          "workflow:TicketAssignment",
+          "business_rule:AssignmentTeamMatch"
+        ],
+        "requirements": []
+      },
+      "score": 0.9523809523809523,
+      "type": "semantic_oracle_gap"
+    },
+    {
+      "case_id": "SSMB2-020",
+      "oracle_missing": {
+        "capabilities": [],
+        "foundation": [
+          "business_rule:EnrollmentDateOrder"
+        ],
+        "requirements": []
+      },
+      "score": 0.9761904761904762,
+      "type": "semantic_oracle_gap"
+    },
+    {
+      "case_id": "SSMB2-021",
+      "oracle_missing": {
+        "capabilities": [],
+        "foundation": [
+          "business_rule:QuantityWithinMaximum"
+        ],
+        "requirements": []
+      },
+      "score": 0.9761904761904762,
+      "type": "semantic_oracle_gap"
+    },
+    {
+      "case_id": "SSMB2-022",
+      "oracle_missing": {
+        "capabilities": [],
+        "foundation": [
+          "business_rule:LeaveRequestDateValidation",
+          "business_rule:LeaveRequestMaxDuration"
+        ],
+        "requirements": []
+      },
+      "score": 0.9583333333333334,
+      "type": "semantic_oracle_gap"
+    },
+    {
+      "blocking": [
+        "Canonical semantic context integrity error: rule ExpenseAmountMustBePositive references undeclared entity ExpenseClaim"
+      ],
+      "case_id": "SSMB2-023",
+      "oracle_missing": {
+        "capabilities": [],
+        "foundation": [
+          "entity:ExpenseClaim",
+          "business_rule:ApprovalLimit"
+        ],
+        "requirements": []
+      },
+      "system_error": null,
+      "type": "unexpected_rejection"
+    },
+    {
+      "blocking": [
+        "Contradiction ctr-d2d93fef8baa: The source requests both MultiTenant and SingleTenant."
+      ],
+      "case_id": "SSMB2-025",
+      "oracle_missing": {
+        "capabilities": [],
+        "foundation": [
+          "tenant_enabled"
+        ],
+        "requirements": []
+      },
+      "system_error": null,
+      "type": "unexpected_rejection"
+    },
+    {
+      "case_id": "SSMB2-028",
+      "oracle_missing": {
+        "capabilities": [],
+        "foundation": [
+          "entity:Product"
+        ],
+        "requirements": []
+      },
+      "score": 0.9444444444444444,
+      "type": "semantic_oracle_gap"
+    },
+    {
+      "case_id": "SSMB2-029",
+      "oracle_missing": {
+        "capabilities": [],
+        "foundation": [
+          "entity:Todo"
+        ],
+        "requirements": []
+      },
+      "score": 0.9444444444444444,
+      "type": "semantic_oracle_gap"
+    }
+  ],
+  "kind": "Study1QualificationFindings"
+}

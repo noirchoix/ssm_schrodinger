@@ -1,0 +1,11 @@
+measure,value,interpretation
+Total online observations,300.0,30 cases × 10 replicates
+Provider-invoked observations,200.0,Stochastic boundary reached
+First-candidate conformance,0.855,171/200 provider-invoked
+Final conformance / acceptance,0.945,189/200 provider-invoked
+Runtime-contract pass,0.9470899470899471,179/189 accepted applications
+Normalized offline↔online outcome match,0.9966666666666667,ACCEPTED and CONDITIONAL normalized to GENERATED
+Upstream stage lock,1.0,Requirements through canonical semantic context
+Cases with SML surface variance,20.0,20/20 provider-invoked cases
+Cases with SIR variance,19.0,19 accepted-generating cases
+Cases with generated-tree variance,19.0,19 accepted-generating cases

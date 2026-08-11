@@ -1,0 +1,6 @@
+condition,verdict,first_changed_stage,primary_metric,baseline_mean,candidate_mean,effect,p_value
+no_change,NO_MATERIAL_CHANGE,none,compile_success,0.6333333333333333,0.6333333333333333,0.0,1.0
+requirements_drop,REGRESSION,requirements,oracle_requirement_recall,1.0,0.7666666666666667,-0.23333333333333334,1.0295115178936058e-84
+sml_rule_drop,REGRESSION,sml,compile_success,0.6333333333333333,0.3,-0.3333333333333333,1.5777218104420236e-30
+generated_tree_drop,REGRESSION,generated_tree,compile_success,0.6333333333333333,0.0,-0.6333333333333333,1.2744735289059618e-57
+intended_evolution,INTENDED_EVOLUTION,generated_tree,generated_file_count,55.03333333333333,55.666666666666664,0.6333333333333333,1.2744735289059618e-57

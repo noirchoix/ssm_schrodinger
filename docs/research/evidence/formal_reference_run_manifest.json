@@ -1,0 +1,24 @@
+{
+  "analysis_sha256": "e1d5b169b4d3438eaad36259f6c8766ce17051fdc38477bad7ec6f3156583f29",
+  "baseline_records": 300,
+  "control_records": 300,
+  "environment": {
+    "attributes": {},
+    "compiler_version": "2.6.0.dev2",
+    "dependency_lock_sha256": null,
+    "environment_lock_sha256": "4a240e1dfec293770dd05d46dfde4737c10d74659773d7c7b0c75e20091d9b93",
+    "model": null,
+    "platform": "linux",
+    "prompt_version": "canonical-offline-v1",
+    "provider": null,
+    "python_version": "3.13.5",
+    "scaffold_version": "ssm-bench-v2-study1"
+  },
+  "execution_scope": "reference artifact-environment execution",
+  "kind": "Study1FormalReferenceRunManifest",
+  "note": "This formal reference execution was produced in the artifact environment. Re-run scripts/run_study1_all.sh in the locked local Windows environment to create an independent environment replication before treating the result as the final portfolio evidence bundle.",
+  "perturbation_records_each": 300,
+  "qualification_summary_sha256": "2cee2338a5a0edbea2382dd802139262ac13e3598f2602f3f1bd8efb1e2093d2",
+  "schema_version": "1.0",
+  "study_id": "ssm-study1-offline-formal-v1"
+}

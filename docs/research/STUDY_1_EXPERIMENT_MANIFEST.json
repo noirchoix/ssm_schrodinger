@@ -1,0 +1,36 @@
+{
+  "alpha": 0.05,
+  "benchmark_id": "sha256:5cca5dcdeffbea089f61c8f9480f39b93237310646097f9458cc1edc1691b4a7",
+  "cases": 30,
+  "conditions": [
+    "baseline",
+    "no_change_control",
+    "requirements_drop",
+    "sml_rule_drop",
+    "generated_tree_drop",
+    "intended_evolution"
+  ],
+  "corpus_digest": "5cca5dcdeffbea089f61c8f9480f39b93237310646097f9458cc1edc1691b4a7",
+  "kind": "Study1ExperimentManifest",
+  "minimum_pairs": 30,
+  "online_provider_arm": "not part of Study 1 formal statistical dataset",
+  "pair_key": [
+    "benchmark_case_id",
+    "replicate_id"
+  ],
+  "perturbation_type": "deterministic evidence-record intervention controls",
+  "primary_metrics": [
+    "compile_success",
+    "generated_file_count",
+    "oracle_requirement_recall",
+    "oracle_semantic_score"
+  ],
+  "protocol_execution_sha256": "c70daaea1600a7322ff146e6600a0f535861efba9fca6222574c8638bf4ba837",
+  "protocol_normalization_note": "After the formal run, Markdown trailing-space line breaks were removed for repository whitespace hygiene; protocol semantics, metrics, thresholds, pair keys, conditions, and analysis rules were unchanged.",
+  "protocol_sha256": "ee4cb6bb146b275df2a86e2345db00d41868889f4131bcc8fac183a542cc2183",
+  "qualification_summary_sha256": "2cee2338a5a0edbea2382dd802139262ac13e3598f2602f3f1bd8efb1e2093d2",
+  "replicates_per_case": 10,
+  "research_instrument_version": "2.6.0.dev2",
+  "schema_version": "1.0",
+  "study_id": "ssm-study1-offline-formal-v1"
+}

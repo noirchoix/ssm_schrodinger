@@ -1,0 +1,5 @@
+metric,offline_mean,online_mean,effect
+oracle_requirement_recall,1.0,1.0,0.0
+oracle_foundation_recall,0.8872222222222222,0.8872222222222222,0.0
+oracle_capability_recall,1.0,1.0,0.0
+oracle_semantic_score,0.9812037037037037,0.9812037037037037,0.0

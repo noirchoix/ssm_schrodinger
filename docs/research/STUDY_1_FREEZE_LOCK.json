@@ -1,0 +1,53 @@
+{
+  "benchmark": "SSM-Bench v2",
+  "benchmark_digest": "5cca5dcdeffbea089f61c8f9480f39b93237310646097f9458cc1edc1691b4a7",
+  "compiler_version": "2.6.0.dev2",
+  "freeze_date": "2026-08-11",
+  "kind": "SSMStudy1FreezeLock",
+  "methodological_lock": {
+    "interpretation": "Structural divergence with preserved measured semantic fidelity; raw release verdict is retained as audit evidence but is not treated as a semantic-regression conclusion.",
+    "normalized_outcome_match_rate": 0.9966666666666667,
+    "raw_cross_strategy_release_assay_verdict": "REGRESSION",
+    "raw_status_match_rate": 0.36666666666666664
+  },
+  "schema_version": "1.0",
+  "source_commit": "TO_BE_FIXED_BY_LOCAL_GIT_COMMIT_AND_TAG",
+  "study1a": {
+    "baseline_records": 300,
+    "control_records": 300,
+    "first_changed_stage": {
+      "generated_tree_drop": "generated_tree",
+      "intended_evolution": "generated_tree",
+      "no_change": null,
+      "requirements_drop": "requirements",
+      "sml_rule_drop": "sml"
+    },
+    "verdicts": {
+      "generated_tree_drop": "REGRESSION",
+      "intended_evolution": "INTENDED_EVOLUTION",
+      "no_change": "NO_MATERIAL_CHANGE",
+      "requirements_drop": "REGRESSION",
+      "sml_rule_drop": "REGRESSION"
+    }
+  },
+  "study1b": {
+    "final_conformance_rate": 0.945,
+    "first_candidate_conformance_rate": 0.855,
+    "first_changed_stage": "sml",
+    "model": "deepseek-chat",
+    "normalized_outcome_match_rate": 0.9966666666666667,
+    "online_records": 300,
+    "provider": "deepseek",
+    "provider_invoked_records": 200,
+    "runtime_pass_rate_accepted": 0.9470899470899471,
+    "semantic_oracle_effects": {
+      "oracle_capability_recall": 0.0,
+      "oracle_foundation_recall": 0.0,
+      "oracle_requirement_recall": 0.0,
+      "oracle_semantic_score": 0.0
+    },
+    "settings_sha256": "f6a6ef82e4cacde1c966224a61a8657adff7b84923c536ef209e96bab5f2f8a7",
+    "temperature": 0.0,
+    "upstream_stage_lock": true
+  }
+}
