@@ -45,8 +45,7 @@ def test_mrq01_leaves_non_business_rule_requirements_present() -> None:
     requirements = IntentRequirementsCompiler().compile_text(text, source_name="M-RQ-01.md")
 
     assert any(
-        item.kind == "entity" and item.name == "Widget"
-        for item in requirements.requirements
+        item.kind == "entity" and item.name == "Widget" for item in requirements.requirements
     )
     assert any(item.kind == "capability" for item in requirements.requirements)
     assert not any(item.kind == "business_rule" for item in requirements.requirements)
