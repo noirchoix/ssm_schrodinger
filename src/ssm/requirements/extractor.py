@@ -45,6 +45,7 @@ class IntentRequirementsCompiler:
         requirements = self._dedupe(requirements)
         requirements.extend(self._inferred_domain_requirements(normalized, requirements))
         requirements = self._dedupe(requirements)
+        requirements = self._drop_first_explicit_business_rule(requirements)
 
         contradictions = self._contradictions(requirements)
         unsupported = self._unsupported_features(normalized)
@@ -69,6 +70,20 @@ class IntentRequirementsCompiler:
         )
         payload.semantic_fingerprint = self.semantic_fingerprint(payload)
         return payload
+
+    @staticmethod
+    def _drop_first_explicit_business_rule(
+        requirements: list[RequirementItem],
+    ) -> list[RequirementItem]:
+        """M-RQ-01: omit the first explicitly extracted business-rule requirement."""
+        dropped = False
+        mutated: list[RequirementItem] = []
+        for item in requirements:
+            if not dropped and item.kind == "business_rule" and item.origin == "explicit":
+                dropped = True
+                continue
+            mutated.append(item)
+        return mutated
 
     def semantic_fingerprint(self, requirements: RequirementsIR) -> str:
         canonical: dict[str, Any] = {
