@@ -1,0 +1,16 @@
+{
+  "case_id": "SSMB2-006",
+  "kind": "SSMBenchV2CaseMetadata",
+  "schema_version": "1.0",
+  "slices": {
+    "database": "InMemory",
+    "domain_pack": "hr",
+    "rule_complexity": "contextual",
+    "security": "jwt",
+    "source_style": "bullet_notes",
+    "tenancy": "disabled",
+    "workflow": "enabled"
+  },
+  "source_style": "bullet_notes",
+  "title": "Small-Team Leave Register"
+}

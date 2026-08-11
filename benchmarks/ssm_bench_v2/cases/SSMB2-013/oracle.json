@@ -1,0 +1,51 @@
+{
+  "architecture": {
+    "selected_pattern": "layered_modular_monolith"
+  },
+  "capabilities": {
+    "required_ids": [
+      "soft_delete_retention",
+      "rbac",
+      "observability"
+    ]
+  },
+  "expected_outcome": "GENERATABLE",
+  "foundation": {
+    "audit_enabled": false,
+    "auth": "JWT",
+    "business_rules": [],
+    "database": "InMemory",
+    "entities": [
+      "Ticket"
+    ],
+    "reports": [],
+    "tenant_enabled": false,
+    "workflows": []
+  },
+  "kind": "SSMBenchV2Oracle",
+  "notes": "Independent semantic obligations authored from input intent; not generated from compiler output.",
+  "requirements": {
+    "ambiguity_topics": [],
+    "contradiction_topics": [],
+    "must_include": [
+      {
+        "kind": "stack",
+        "name": "InMemory"
+      },
+      {
+        "kind": "security",
+        "name": "JWT"
+      },
+      {
+        "kind": "entity",
+        "name": "Ticket"
+      },
+      {
+        "kind": "capability",
+        "name": "SoftDeleteRetention"
+      }
+    ],
+    "unsupported_features": []
+  },
+  "schema_version": "1.0"
+}

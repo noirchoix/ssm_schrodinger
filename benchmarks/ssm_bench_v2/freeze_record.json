@@ -1,0 +1,13 @@
+{
+  "benchmark_id": "sha256:5cca5dcdeffbea089f61c8f9480f39b93237310646097f9458cc1edc1691b4a7",
+  "corpus_digest": "5cca5dcdeffbea089f61c8f9480f39b93237310646097f9458cc1edc1691b4a7",
+  "freeze_policy": "Corpus frozen after harness qualification; current compiler semantic misses remain benchmark findings and are not tuned away.",
+  "frozen": true,
+  "kind": "SSMBenchV2FreezeRecord",
+  "qualification_expected_outcome_matches": 23,
+  "qualification_harness_qualified": true,
+  "qualification_mean_semantic_oracle_score": 0.9812037037037037,
+  "qualification_summary_sha256": "2cee2338a5a0edbea2382dd802139262ac13e3598f2602f3f1bd8efb1e2093d2",
+  "research_instrument_version": "2.6.0.dev2",
+  "schema_version": "1.0"
+}

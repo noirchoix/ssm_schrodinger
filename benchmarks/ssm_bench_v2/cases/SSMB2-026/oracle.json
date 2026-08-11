@@ -1,0 +1,60 @@
+{
+  "architecture": {
+    "selected_pattern": "layered_modular_monolith"
+  },
+  "capabilities": {
+    "required_ids": [
+      "rbac",
+      "tenant_isolation",
+      "audit",
+      "workflow",
+      "observability"
+    ]
+  },
+  "expected_outcome": "GENERATABLE",
+  "foundation": {
+    "audit_enabled": true,
+    "auth": "JWT",
+    "business_rules": [],
+    "database": "PostgreSQL",
+    "entities": [
+      "Employee",
+      "LeaveRequest"
+    ],
+    "reports": [],
+    "tenant_enabled": true,
+    "workflows": []
+  },
+  "kind": "SSMBenchV2Oracle",
+  "notes": "Independent semantic obligations authored from input intent; not generated from compiler output.",
+  "requirements": {
+    "ambiguity_topics": [
+      "Domain entities"
+    ],
+    "contradiction_topics": [],
+    "must_include": [
+      {
+        "kind": "stack",
+        "name": "PostgreSQL"
+      },
+      {
+        "kind": "security",
+        "name": "JWT"
+      },
+      {
+        "kind": "capability",
+        "name": "MultiTenant"
+      },
+      {
+        "kind": "entity",
+        "name": "Employee"
+      },
+      {
+        "kind": "entity",
+        "name": "LeaveRequest"
+      }
+    ],
+    "unsupported_features": []
+  },
+  "schema_version": "1.0"
+}

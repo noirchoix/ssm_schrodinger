@@ -1,0 +1,44 @@
+{
+  "checks": [
+    {
+      "kind": "readyz",
+      "status": 200
+    },
+    {
+      "kind": "route_exists",
+      "method": "GET",
+      "path": "/todos"
+    },
+    {
+      "kind": "unauthenticated_status",
+      "method": "GET",
+      "path": "/todos",
+      "statuses": [
+        401,
+        403
+      ]
+    },
+    {
+      "kind": "authenticated_status",
+      "method": "GET",
+      "path": "/todos",
+      "statuses": [
+        200
+      ]
+    },
+    {
+      "kind": "route_exists",
+      "method": "GET",
+      "path": "/platform/tenant/current"
+    },
+    {
+      "kind": "route_exists",
+      "method": "GET",
+      "path": "/platform/audit/events"
+    }
+  ],
+  "database": "PostgreSQL",
+  "kind": "IndependentRuntimeContract",
+  "mode": "execute",
+  "schema_version": "1.0"
+}

@@ -1,0 +1,16 @@
+{
+  "case_id": "SSMB2-028",
+  "kind": "SSMBenchV2CaseMetadata",
+  "schema_version": "1.0",
+  "slices": {
+    "database": "PostgreSQL",
+    "domain_pack": "inventory",
+    "rule_complexity": "local",
+    "security": "jwt",
+    "source_style": "unsupported_brief",
+    "tenancy": "disabled",
+    "workflow": "disabled"
+  },
+  "source_style": "unsupported_brief",
+  "title": "Unsupported Payment Gateway"
+}

@@ -1,0 +1,16 @@
+{
+  "case_id": "SSMB2-014",
+  "kind": "SSMBenchV2CaseMetadata",
+  "schema_version": "1.0",
+  "slices": {
+    "database": "PostgreSQL",
+    "domain_pack": "inventory",
+    "rule_complexity": "local",
+    "security": "jwt",
+    "source_style": "bullet_notes",
+    "tenancy": "disabled",
+    "workflow": "disabled"
+  },
+  "source_style": "bullet_notes",
+  "title": "Inventory Observability Profile"
+}

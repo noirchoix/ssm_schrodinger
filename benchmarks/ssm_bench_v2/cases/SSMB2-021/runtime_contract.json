@@ -1,0 +1,34 @@
+{
+  "checks": [
+    {
+      "kind": "readyz",
+      "status": 200
+    },
+    {
+      "kind": "route_exists",
+      "method": "GET",
+      "path": "/products"
+    },
+    {
+      "kind": "unauthenticated_status",
+      "method": "GET",
+      "path": "/products",
+      "statuses": [
+        401,
+        403
+      ]
+    },
+    {
+      "kind": "authenticated_status",
+      "method": "GET",
+      "path": "/products",
+      "statuses": [
+        200
+      ]
+    }
+  ],
+  "database": "InMemory",
+  "kind": "IndependentRuntimeContract",
+  "mode": "execute",
+  "schema_version": "1.0"
+}

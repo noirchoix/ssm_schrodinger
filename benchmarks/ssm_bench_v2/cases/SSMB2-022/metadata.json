@@ -1,0 +1,16 @@
+{
+  "case_id": "SSMB2-022",
+  "kind": "SSMBenchV2CaseMetadata",
+  "schema_version": "1.0",
+  "slices": {
+    "database": "InMemory",
+    "domain_pack": "hr",
+    "rule_complexity": "multi_field",
+    "security": "jwt",
+    "source_style": "stakeholder_notes",
+    "tenancy": "disabled",
+    "workflow": "enabled"
+  },
+  "source_style": "stakeholder_notes",
+  "title": "Leave Date Validation"
+}

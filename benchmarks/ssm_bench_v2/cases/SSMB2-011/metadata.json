@@ -1,0 +1,16 @@
+{
+  "case_id": "SSMB2-011",
+  "kind": "SSMBenchV2CaseMetadata",
+  "schema_version": "1.0",
+  "slices": {
+    "database": "PostgreSQL",
+    "domain_pack": "expense",
+    "rule_complexity": "local",
+    "security": "jwt",
+    "source_style": "semi_structured_prd",
+    "tenancy": "disabled",
+    "workflow": "enabled"
+  },
+  "source_style": "semi_structured_prd",
+  "title": "Expense Notifications Contract"
+}

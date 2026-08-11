@@ -1,0 +1,16 @@
+{
+  "case_id": "SSMB2-012",
+  "kind": "SSMBenchV2CaseMetadata",
+  "schema_version": "1.0",
+  "slices": {
+    "database": "PostgreSQL",
+    "domain_pack": "crm",
+    "rule_complexity": "none",
+    "security": "jwt",
+    "source_style": "structured_readme",
+    "tenancy": "disabled",
+    "workflow": "disabled"
+  },
+  "source_style": "structured_readme",
+  "title": "CRM Webhook Delivery Contract"
+}

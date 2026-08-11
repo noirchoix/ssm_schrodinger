@@ -1,0 +1,16 @@
+{
+  "case_id": "SSMB2-025",
+  "kind": "SSMBenchV2CaseMetadata",
+  "schema_version": "1.0",
+  "slices": {
+    "database": "PostgreSQL",
+    "domain_pack": "hr",
+    "rule_complexity": "contextual",
+    "security": "jwt",
+    "source_style": "semi_structured_prd",
+    "tenancy": "disabled",
+    "workflow": "disabled"
+  },
+  "source_style": "semi_structured_prd",
+  "title": "Single-Tenant HR Register"
+}

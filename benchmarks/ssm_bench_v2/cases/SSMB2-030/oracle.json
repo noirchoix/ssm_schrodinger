@@ -1,0 +1,36 @@
+{
+  "architecture": {
+    "selected_pattern": "layered_modular_monolith"
+  },
+  "capabilities": {
+    "required_ids": [
+      "rbac",
+      "observability"
+    ]
+  },
+  "expected_outcome": "REJECTED",
+  "foundation": {
+    "business_rules": [],
+    "entities": [],
+    "reports": [],
+    "workflows": []
+  },
+  "kind": "SSMBenchV2Oracle",
+  "notes": "Independent semantic obligations authored from input intent; not generated from compiler output.",
+  "requirements": {
+    "ambiguity_topics": [
+      "Database strategy",
+      "Authentication strategy",
+      "Domain entities"
+    ],
+    "contradiction_topics": [],
+    "must_include": [
+      {
+        "kind": "stack",
+        "name": "FastAPI"
+      }
+    ],
+    "unsupported_features": []
+  },
+  "schema_version": "1.0"
+}

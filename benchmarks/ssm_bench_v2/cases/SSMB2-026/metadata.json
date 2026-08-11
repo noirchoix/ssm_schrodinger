@@ -1,0 +1,16 @@
+{
+  "case_id": "SSMB2-026",
+  "kind": "SSMBenchV2CaseMetadata",
+  "schema_version": "1.0",
+  "slices": {
+    "database": "PostgreSQL",
+    "domain_pack": "hr",
+    "rule_complexity": "contextual",
+    "security": "jwt",
+    "source_style": "narrative_request",
+    "tenancy": "enabled",
+    "workflow": "enabled"
+  },
+  "source_style": "narrative_request",
+  "title": "Narrative HR Inference"
+}

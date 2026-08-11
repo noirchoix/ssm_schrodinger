@@ -1,0 +1,16 @@
+{
+  "case_id": "SSMB2-021",
+  "kind": "SSMBenchV2CaseMetadata",
+  "schema_version": "1.0",
+  "slices": {
+    "database": "InMemory",
+    "domain_pack": "inventory",
+    "rule_complexity": "multi_field",
+    "security": "jwt",
+    "source_style": "semi_structured_prd",
+    "tenancy": "disabled",
+    "workflow": "disabled"
+  },
+  "source_style": "semi_structured_prd",
+  "title": "Inventory Maximum Stock Rule"
+}

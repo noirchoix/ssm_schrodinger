@@ -1,0 +1,16 @@
+{
+  "case_id": "SSMB2-027",
+  "kind": "SSMBenchV2CaseMetadata",
+  "schema_version": "1.0",
+  "slices": {
+    "database": "contradictory",
+    "domain_pack": "inventory",
+    "rule_complexity": "local",
+    "security": "jwt",
+    "source_style": "contradictory_brief",
+    "tenancy": "disabled",
+    "workflow": "disabled"
+  },
+  "source_style": "contradictory_brief",
+  "title": "Contradictory Persistence Brief"
+}

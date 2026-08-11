@@ -1,0 +1,16 @@
+{
+  "case_id": "SSMB2-018",
+  "kind": "SSMBenchV2CaseMetadata",
+  "schema_version": "1.0",
+  "slices": {
+    "database": "PostgreSQL",
+    "domain_pack": "crm",
+    "rule_complexity": "none",
+    "security": "jwt",
+    "source_style": "bullet_notes",
+    "tenancy": "disabled",
+    "workflow": "enabled"
+  },
+  "source_style": "bullet_notes",
+  "title": "CRM Explicit Workflow"
+}

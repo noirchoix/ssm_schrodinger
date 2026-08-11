@@ -1,0 +1,16 @@
+{
+  "case_id": "SSMB2-013",
+  "kind": "SSMBenchV2CaseMetadata",
+  "schema_version": "1.0",
+  "slices": {
+    "database": "InMemory",
+    "domain_pack": "ticketing",
+    "rule_complexity": "none",
+    "security": "jwt",
+    "source_style": "stakeholder_notes",
+    "tenancy": "disabled",
+    "workflow": "disabled"
+  },
+  "source_style": "stakeholder_notes",
+  "title": "Ticket Retention Contract"
+}

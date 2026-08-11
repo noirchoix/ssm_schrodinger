@@ -1,0 +1,16 @@
+{
+  "case_id": "SSMB2-009",
+  "kind": "SSMBenchV2CaseMetadata",
+  "schema_version": "1.0",
+  "slices": {
+    "database": "PostgreSQL",
+    "domain_pack": "ticketing",
+    "rule_complexity": "none",
+    "security": "jwt",
+    "source_style": "narrative_request",
+    "tenancy": "disabled",
+    "workflow": "enabled"
+  },
+  "source_style": "narrative_request",
+  "title": "Ticket SLA Desk"
+}

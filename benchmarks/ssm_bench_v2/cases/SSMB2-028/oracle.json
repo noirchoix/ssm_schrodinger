@@ -1,0 +1,50 @@
+{
+  "architecture": {
+    "selected_pattern": "layered_modular_monolith"
+  },
+  "capabilities": {
+    "required_ids": [
+      "rbac",
+      "observability"
+    ]
+  },
+  "expected_outcome": "REJECTED",
+  "foundation": {
+    "auth": "JWT",
+    "business_rules": [],
+    "database": "PostgreSQL",
+    "entities": [
+      "Product"
+    ],
+    "reports": [],
+    "workflows": []
+  },
+  "kind": "SSMBenchV2Oracle",
+  "notes": "Independent semantic obligations authored from input intent; not generated from compiler output.",
+  "requirements": {
+    "ambiguity_topics": [],
+    "contradiction_topics": [],
+    "must_include": [
+      {
+        "kind": "stack",
+        "name": "PostgreSQL"
+      },
+      {
+        "kind": "security",
+        "name": "JWT"
+      },
+      {
+        "kind": "entity",
+        "name": "Product"
+      },
+      {
+        "kind": "integration",
+        "name": "Stripe payment gateway"
+      }
+    ],
+    "unsupported_features": [
+      "payment processing"
+    ]
+  },
+  "schema_version": "1.0"
+}

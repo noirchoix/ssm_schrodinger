@@ -1,0 +1,25 @@
+{
+  "checks": [
+    {
+      "kind": "readyz",
+      "status": 200
+    },
+    {
+      "kind": "route_exists",
+      "method": "GET",
+      "path": "/todos"
+    },
+    {
+      "kind": "authenticated_status",
+      "method": "GET",
+      "path": "/todos",
+      "statuses": [
+        200
+      ]
+    }
+  ],
+  "database": "InMemory",
+  "kind": "IndependentRuntimeContract",
+  "mode": "execute",
+  "schema_version": "1.0"
+}

@@ -1,0 +1,57 @@
+{
+  "architecture": {
+    "selected_pattern": "layered_modular_monolith"
+  },
+  "capabilities": {
+    "required_ids": [
+      "rbac",
+      "observability"
+    ]
+  },
+  "expected_outcome": "GENERATABLE",
+  "foundation": {
+    "audit_enabled": false,
+    "auth": "JWT",
+    "business_rules": [
+      "EnrollmentDateOrder"
+    ],
+    "database": "InMemory",
+    "entities": [
+      "Student",
+      "Course"
+    ],
+    "reports": [],
+    "tenant_enabled": false,
+    "workflows": []
+  },
+  "kind": "SSMBenchV2Oracle",
+  "notes": "Independent semantic obligations authored from input intent; not generated from compiler output.",
+  "requirements": {
+    "ambiguity_topics": [],
+    "contradiction_topics": [],
+    "must_include": [
+      {
+        "kind": "stack",
+        "name": "InMemory"
+      },
+      {
+        "kind": "security",
+        "name": "JWT"
+      },
+      {
+        "kind": "entity",
+        "name": "Student"
+      },
+      {
+        "kind": "entity",
+        "name": "Course"
+      },
+      {
+        "kind": "business_rule",
+        "name": "EnrollmentDateOrder"
+      }
+    ],
+    "unsupported_features": []
+  },
+  "schema_version": "1.0"
+}

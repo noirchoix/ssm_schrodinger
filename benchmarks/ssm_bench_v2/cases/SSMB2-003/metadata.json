@@ -1,0 +1,16 @@
+{
+  "case_id": "SSMB2-003",
+  "kind": "SSMBenchV2CaseMetadata",
+  "schema_version": "1.0",
+  "slices": {
+    "database": "InMemory",
+    "domain_pack": "generic_crud",
+    "rule_complexity": "none",
+    "security": "public",
+    "source_style": "narrative_request",
+    "tenancy": "disabled",
+    "workflow": "disabled"
+  },
+  "source_style": "narrative_request",
+  "title": "Public Todo Board"
+}

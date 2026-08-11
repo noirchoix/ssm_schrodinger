@@ -1,0 +1,16 @@
+{
+  "case_id": "SSMB2-020",
+  "kind": "SSMBenchV2CaseMetadata",
+  "schema_version": "1.0",
+  "slices": {
+    "database": "InMemory",
+    "domain_pack": "school",
+    "rule_complexity": "multi_field",
+    "security": "jwt",
+    "source_style": "structured_readme",
+    "tenancy": "disabled",
+    "workflow": "disabled"
+  },
+  "source_style": "structured_readme",
+  "title": "School Enrollment Temporal Rule"
+}

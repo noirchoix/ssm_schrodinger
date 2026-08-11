@@ -1,0 +1,65 @@
+{
+  "architecture": {
+    "selected_pattern": "layered_modular_monolith"
+  },
+  "capabilities": {
+    "required_ids": [
+      "rbac",
+      "audit",
+      "workflow",
+      "observability"
+    ]
+  },
+  "expected_outcome": "GENERATABLE",
+  "foundation": {
+    "audit_enabled": true,
+    "auth": "JWT",
+    "business_rules": [
+      "LeaveBalanceCannotGoNegative"
+    ],
+    "database": "InMemory",
+    "entities": [
+      "Employee",
+      "LeaveRequest"
+    ],
+    "reports": [],
+    "tenant_enabled": false,
+    "workflows": [
+      "LeaveRequestApproval"
+    ]
+  },
+  "kind": "SSMBenchV2Oracle",
+  "notes": "Independent semantic obligations authored from input intent; not generated from compiler output.",
+  "requirements": {
+    "ambiguity_topics": [],
+    "contradiction_topics": [],
+    "must_include": [
+      {
+        "kind": "stack",
+        "name": "FastAPI"
+      },
+      {
+        "kind": "stack",
+        "name": "InMemory"
+      },
+      {
+        "kind": "security",
+        "name": "JWT"
+      },
+      {
+        "kind": "entity",
+        "name": "Employee"
+      },
+      {
+        "kind": "entity",
+        "name": "LeaveRequest"
+      },
+      {
+        "kind": "workflow",
+        "name": "LeaveRequestApproval"
+      }
+    ],
+    "unsupported_features": []
+  },
+  "schema_version": "1.0"
+}

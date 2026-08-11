@@ -1,0 +1,16 @@
+{
+  "case_id": "SSMB2-023",
+  "kind": "SSMBenchV2CaseMetadata",
+  "schema_version": "1.0",
+  "slices": {
+    "database": "PostgreSQL",
+    "domain_pack": "expense",
+    "rule_complexity": "contextual",
+    "security": "jwt",
+    "source_style": "narrative_request",
+    "tenancy": "disabled",
+    "workflow": "enabled"
+  },
+  "source_style": "narrative_request",
+  "title": "Expense Approval Limit Context"
+}

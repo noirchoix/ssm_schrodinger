@@ -1,0 +1,461 @@
+{
+  "benchmark_id": "sha256:5cca5dcdeffbea089f61c8f9480f39b93237310646097f9458cc1edc1691b4a7",
+  "benchmark_name": "SSM-Bench v2 \u2014 End-to-End Semantic Evolution Benchmark",
+  "case_count": 30,
+  "cases": [
+    {
+      "case_id": "SSMB2-001",
+      "case_path": "cases/SSMB2-001",
+      "slices": {
+        "database": "PostgreSQL",
+        "domain_pack": "inventory",
+        "rule_complexity": "local",
+        "security": "jwt",
+        "source_style": "structured_readme",
+        "tenancy": "disabled",
+        "workflow": "disabled"
+      },
+      "source_style": "structured_readme",
+      "title": "Inventory Control API"
+    },
+    {
+      "case_id": "SSMB2-002",
+      "case_path": "cases/SSMB2-002",
+      "slices": {
+        "database": "InMemory",
+        "domain_pack": "inventory",
+        "rule_complexity": "local",
+        "security": "jwt",
+        "source_style": "stakeholder_notes",
+        "tenancy": "disabled",
+        "workflow": "disabled"
+      },
+      "source_style": "stakeholder_notes",
+      "title": "Inventory Memory Boundary"
+    },
+    {
+      "case_id": "SSMB2-003",
+      "case_path": "cases/SSMB2-003",
+      "slices": {
+        "database": "InMemory",
+        "domain_pack": "generic_crud",
+        "rule_complexity": "none",
+        "security": "public",
+        "source_style": "narrative_request",
+        "tenancy": "disabled",
+        "workflow": "disabled"
+      },
+      "source_style": "narrative_request",
+      "title": "Public Todo Board"
+    },
+    {
+      "case_id": "SSMB2-004",
+      "case_path": "cases/SSMB2-004",
+      "slices": {
+        "database": "PostgreSQL",
+        "domain_pack": "generic_crud",
+        "rule_complexity": "none",
+        "security": "jwt",
+        "source_style": "semi_structured_prd",
+        "tenancy": "enabled",
+        "workflow": "disabled"
+      },
+      "source_style": "semi_structured_prd",
+      "title": "Tenant Todo Workspace"
+    },
+    {
+      "case_id": "SSMB2-005",
+      "case_path": "cases/SSMB2-005",
+      "slices": {
+        "database": "PostgreSQL",
+        "domain_pack": "hr",
+        "rule_complexity": "contextual",
+        "security": "jwt",
+        "source_style": "structured_readme",
+        "tenancy": "enabled",
+        "workflow": "enabled"
+      },
+      "source_style": "structured_readme",
+      "title": "HR Leave Approval"
+    },
+    {
+      "case_id": "SSMB2-006",
+      "case_path": "cases/SSMB2-006",
+      "slices": {
+        "database": "InMemory",
+        "domain_pack": "hr",
+        "rule_complexity": "contextual",
+        "security": "jwt",
+        "source_style": "bullet_notes",
+        "tenancy": "disabled",
+        "workflow": "enabled"
+      },
+      "source_style": "bullet_notes",
+      "title": "Small-Team Leave Register"
+    },
+    {
+      "case_id": "SSMB2-007",
+      "case_path": "cases/SSMB2-007",
+      "slices": {
+        "database": "PostgreSQL",
+        "domain_pack": "expense",
+        "rule_complexity": "local",
+        "security": "jwt",
+        "source_style": "semi_structured_prd",
+        "tenancy": "enabled",
+        "workflow": "enabled"
+      },
+      "source_style": "semi_structured_prd",
+      "title": "Expense Claim Approval"
+    },
+    {
+      "case_id": "SSMB2-008",
+      "case_path": "cases/SSMB2-008",
+      "slices": {
+        "database": "PostgreSQL",
+        "domain_pack": "crm",
+        "rule_complexity": "none",
+        "security": "jwt",
+        "source_style": "structured_readme",
+        "tenancy": "enabled",
+        "workflow": "enabled"
+      },
+      "source_style": "structured_readme",
+      "title": "CRM Sales Pipeline"
+    },
+    {
+      "case_id": "SSMB2-009",
+      "case_path": "cases/SSMB2-009",
+      "slices": {
+        "database": "PostgreSQL",
+        "domain_pack": "ticketing",
+        "rule_complexity": "none",
+        "security": "jwt",
+        "source_style": "narrative_request",
+        "tenancy": "disabled",
+        "workflow": "enabled"
+      },
+      "source_style": "narrative_request",
+      "title": "Ticket SLA Desk"
+    },
+    {
+      "case_id": "SSMB2-010",
+      "case_path": "cases/SSMB2-010",
+      "slices": {
+        "database": "PostgreSQL",
+        "domain_pack": "school",
+        "rule_complexity": "none",
+        "security": "jwt",
+        "source_style": "structured_readme",
+        "tenancy": "enabled",
+        "workflow": "disabled"
+      },
+      "source_style": "structured_readme",
+      "title": "School Records Core"
+    },
+    {
+      "case_id": "SSMB2-011",
+      "case_path": "cases/SSMB2-011",
+      "slices": {
+        "database": "PostgreSQL",
+        "domain_pack": "expense",
+        "rule_complexity": "local",
+        "security": "jwt",
+        "source_style": "semi_structured_prd",
+        "tenancy": "disabled",
+        "workflow": "enabled"
+      },
+      "source_style": "semi_structured_prd",
+      "title": "Expense Notifications Contract"
+    },
+    {
+      "case_id": "SSMB2-012",
+      "case_path": "cases/SSMB2-012",
+      "slices": {
+        "database": "PostgreSQL",
+        "domain_pack": "crm",
+        "rule_complexity": "none",
+        "security": "jwt",
+        "source_style": "structured_readme",
+        "tenancy": "disabled",
+        "workflow": "disabled"
+      },
+      "source_style": "structured_readme",
+      "title": "CRM Webhook Delivery Contract"
+    },
+    {
+      "case_id": "SSMB2-013",
+      "case_path": "cases/SSMB2-013",
+      "slices": {
+        "database": "InMemory",
+        "domain_pack": "ticketing",
+        "rule_complexity": "none",
+        "security": "jwt",
+        "source_style": "stakeholder_notes",
+        "tenancy": "disabled",
+        "workflow": "disabled"
+      },
+      "source_style": "stakeholder_notes",
+      "title": "Ticket Retention Contract"
+    },
+    {
+      "case_id": "SSMB2-014",
+      "case_path": "cases/SSMB2-014",
+      "slices": {
+        "database": "PostgreSQL",
+        "domain_pack": "inventory",
+        "rule_complexity": "local",
+        "security": "jwt",
+        "source_style": "bullet_notes",
+        "tenancy": "disabled",
+        "workflow": "disabled"
+      },
+      "source_style": "bullet_notes",
+      "title": "Inventory Observability Profile"
+    },
+    {
+      "case_id": "SSMB2-015",
+      "case_path": "cases/SSMB2-015",
+      "slices": {
+        "database": "InMemory",
+        "domain_pack": "generic_crud",
+        "rule_complexity": "none",
+        "security": "jwt",
+        "source_style": "structured_readme",
+        "tenancy": "disabled",
+        "workflow": "disabled"
+      },
+      "source_style": "structured_readme",
+      "title": "Todo Use-Case Specification"
+    },
+    {
+      "case_id": "SSMB2-016",
+      "case_path": "cases/SSMB2-016",
+      "slices": {
+        "database": "PostgreSQL",
+        "domain_pack": "hr",
+        "rule_complexity": "contextual",
+        "security": "jwt",
+        "source_style": "structured_readme",
+        "tenancy": "disabled",
+        "workflow": "disabled"
+      },
+      "source_style": "structured_readme",
+      "title": "HRIS Boundary"
+    },
+    {
+      "case_id": "SSMB2-017",
+      "case_path": "cases/SSMB2-017",
+      "slices": {
+        "database": "PostgreSQL",
+        "domain_pack": "expense",
+        "rule_complexity": "local",
+        "security": "jwt",
+        "source_style": "semi_structured_prd",
+        "tenancy": "disabled",
+        "workflow": "enabled"
+      },
+      "source_style": "semi_structured_prd",
+      "title": "Expense External Ledger Ambiguity"
+    },
+    {
+      "case_id": "SSMB2-018",
+      "case_path": "cases/SSMB2-018",
+      "slices": {
+        "database": "PostgreSQL",
+        "domain_pack": "crm",
+        "rule_complexity": "none",
+        "security": "jwt",
+        "source_style": "bullet_notes",
+        "tenancy": "disabled",
+        "workflow": "enabled"
+      },
+      "source_style": "bullet_notes",
+      "title": "CRM Explicit Workflow"
+    },
+    {
+      "case_id": "SSMB2-019",
+      "case_path": "cases/SSMB2-019",
+      "slices": {
+        "database": "PostgreSQL",
+        "domain_pack": "ticketing",
+        "rule_complexity": "contextual",
+        "security": "jwt",
+        "source_style": "structured_readme",
+        "tenancy": "disabled",
+        "workflow": "enabled"
+      },
+      "source_style": "structured_readme",
+      "title": "Ticket Assignment Context Rule"
+    },
+    {
+      "case_id": "SSMB2-020",
+      "case_path": "cases/SSMB2-020",
+      "slices": {
+        "database": "InMemory",
+        "domain_pack": "school",
+        "rule_complexity": "multi_field",
+        "security": "jwt",
+        "source_style": "structured_readme",
+        "tenancy": "disabled",
+        "workflow": "disabled"
+      },
+      "source_style": "structured_readme",
+      "title": "School Enrollment Temporal Rule"
+    },
+    {
+      "case_id": "SSMB2-021",
+      "case_path": "cases/SSMB2-021",
+      "slices": {
+        "database": "InMemory",
+        "domain_pack": "inventory",
+        "rule_complexity": "multi_field",
+        "security": "jwt",
+        "source_style": "semi_structured_prd",
+        "tenancy": "disabled",
+        "workflow": "disabled"
+      },
+      "source_style": "semi_structured_prd",
+      "title": "Inventory Maximum Stock Rule"
+    },
+    {
+      "case_id": "SSMB2-022",
+      "case_path": "cases/SSMB2-022",
+      "slices": {
+        "database": "InMemory",
+        "domain_pack": "hr",
+        "rule_complexity": "multi_field",
+        "security": "jwt",
+        "source_style": "stakeholder_notes",
+        "tenancy": "disabled",
+        "workflow": "enabled"
+      },
+      "source_style": "stakeholder_notes",
+      "title": "Leave Date Validation"
+    },
+    {
+      "case_id": "SSMB2-023",
+      "case_path": "cases/SSMB2-023",
+      "slices": {
+        "database": "PostgreSQL",
+        "domain_pack": "expense",
+        "rule_complexity": "contextual",
+        "security": "jwt",
+        "source_style": "narrative_request",
+        "tenancy": "disabled",
+        "workflow": "enabled"
+      },
+      "source_style": "narrative_request",
+      "title": "Expense Approval Limit Context"
+    },
+    {
+      "case_id": "SSMB2-024",
+      "case_path": "cases/SSMB2-024",
+      "slices": {
+        "database": "PostgreSQL",
+        "domain_pack": "generic_crud",
+        "rule_complexity": "none",
+        "security": "jwt",
+        "source_style": "structured_readme",
+        "tenancy": "enabled",
+        "workflow": "disabled"
+      },
+      "source_style": "structured_readme",
+      "title": "Tenant Todo Audit RBAC"
+    },
+    {
+      "case_id": "SSMB2-025",
+      "case_path": "cases/SSMB2-025",
+      "slices": {
+        "database": "PostgreSQL",
+        "domain_pack": "hr",
+        "rule_complexity": "contextual",
+        "security": "jwt",
+        "source_style": "semi_structured_prd",
+        "tenancy": "disabled",
+        "workflow": "disabled"
+      },
+      "source_style": "semi_structured_prd",
+      "title": "Single-Tenant HR Register"
+    },
+    {
+      "case_id": "SSMB2-026",
+      "case_path": "cases/SSMB2-026",
+      "slices": {
+        "database": "PostgreSQL",
+        "domain_pack": "hr",
+        "rule_complexity": "contextual",
+        "security": "jwt",
+        "source_style": "narrative_request",
+        "tenancy": "enabled",
+        "workflow": "enabled"
+      },
+      "source_style": "narrative_request",
+      "title": "Narrative HR Inference"
+    },
+    {
+      "case_id": "SSMB2-027",
+      "case_path": "cases/SSMB2-027",
+      "slices": {
+        "database": "contradictory",
+        "domain_pack": "inventory",
+        "rule_complexity": "local",
+        "security": "jwt",
+        "source_style": "contradictory_brief",
+        "tenancy": "disabled",
+        "workflow": "disabled"
+      },
+      "source_style": "contradictory_brief",
+      "title": "Contradictory Persistence Brief"
+    },
+    {
+      "case_id": "SSMB2-028",
+      "case_path": "cases/SSMB2-028",
+      "slices": {
+        "database": "PostgreSQL",
+        "domain_pack": "inventory",
+        "rule_complexity": "local",
+        "security": "jwt",
+        "source_style": "unsupported_brief",
+        "tenancy": "disabled",
+        "workflow": "disabled"
+      },
+      "source_style": "unsupported_brief",
+      "title": "Unsupported Payment Gateway"
+    },
+    {
+      "case_id": "SSMB2-029",
+      "case_path": "cases/SSMB2-029",
+      "slices": {
+        "database": "PostgreSQL",
+        "domain_pack": "generic_crud",
+        "rule_complexity": "none",
+        "security": "jwt",
+        "source_style": "unsupported_brief",
+        "tenancy": "disabled",
+        "workflow": "disabled"
+      },
+      "source_style": "unsupported_brief",
+      "title": "Unsupported Native Mobile Requirement"
+    },
+    {
+      "case_id": "SSMB2-030",
+      "case_path": "cases/SSMB2-030",
+      "slices": {
+        "database": "unspecified",
+        "domain_pack": "generic_crud",
+        "rule_complexity": "none",
+        "security": "unspecified",
+        "source_style": "ambiguous_brief",
+        "tenancy": "disabled",
+        "workflow": "disabled"
+      },
+      "source_style": "ambiguous_brief",
+      "title": "Underspecified Operations Service"
+    }
+  ],
+  "corpus_digest": "5cca5dcdeffbea089f61c8f9480f39b93237310646097f9458cc1edc1691b4a7",
+  "kind": "SSMBenchV2Manifest",
+  "oracle_policy": "Only input.md is provided to the product compiler. Oracle/runtime/metadata files are evaluator-only and must never enter synthesis context.",
+  "schema_version": "2.0"
+}

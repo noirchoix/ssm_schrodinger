@@ -1,0 +1,16 @@
+{
+  "case_id": "SSMB2-010",
+  "kind": "SSMBenchV2CaseMetadata",
+  "schema_version": "1.0",
+  "slices": {
+    "database": "PostgreSQL",
+    "domain_pack": "school",
+    "rule_complexity": "none",
+    "security": "jwt",
+    "source_style": "structured_readme",
+    "tenancy": "enabled",
+    "workflow": "disabled"
+  },
+  "source_style": "structured_readme",
+  "title": "School Records Core"
+}

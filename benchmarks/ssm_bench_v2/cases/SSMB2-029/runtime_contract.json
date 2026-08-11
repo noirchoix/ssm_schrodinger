@@ -1,0 +1,8 @@
+{
+  "checks": [],
+  "database": "PostgreSQL",
+  "kind": "IndependentRuntimeContract",
+  "mode": "skip",
+  "reason": "Expected fail-closed rejection before generation",
+  "schema_version": "1.0"
+}

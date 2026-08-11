@@ -1,0 +1,61 @@
+{
+  "architecture": {
+    "selected_pattern": "layered_modular_monolith"
+  },
+  "capabilities": {
+    "required_ids": [
+      "rbac",
+      "audit",
+      "workflow",
+      "observability"
+    ]
+  },
+  "expected_outcome": "GENERATABLE",
+  "foundation": {
+    "audit_enabled": true,
+    "auth": "JWT",
+    "business_rules": [],
+    "database": "PostgreSQL",
+    "entities": [
+      "Lead",
+      "Deal"
+    ],
+    "reports": [],
+    "tenant_enabled": false,
+    "workflows": []
+  },
+  "kind": "SSMBenchV2Oracle",
+  "notes": "Independent semantic obligations authored from input intent; not generated from compiler output.",
+  "requirements": {
+    "ambiguity_topics": [],
+    "contradiction_topics": [],
+    "must_include": [
+      {
+        "kind": "stack",
+        "name": "PostgreSQL"
+      },
+      {
+        "kind": "security",
+        "name": "JWT"
+      },
+      {
+        "kind": "entity",
+        "name": "Lead"
+      },
+      {
+        "kind": "entity",
+        "name": "Deal"
+      },
+      {
+        "kind": "workflow",
+        "name": "DealLifecycle"
+      },
+      {
+        "kind": "actor",
+        "name": "SalesRep"
+      }
+    ],
+    "unsupported_features": []
+  },
+  "schema_version": "1.0"
+}

@@ -1,0 +1,16 @@
+{
+  "case_id": "SSMB2-030",
+  "kind": "SSMBenchV2CaseMetadata",
+  "schema_version": "1.0",
+  "slices": {
+    "database": "unspecified",
+    "domain_pack": "generic_crud",
+    "rule_complexity": "none",
+    "security": "unspecified",
+    "source_style": "ambiguous_brief",
+    "tenancy": "disabled",
+    "workflow": "disabled"
+  },
+  "source_style": "ambiguous_brief",
+  "title": "Underspecified Operations Service"
+}
