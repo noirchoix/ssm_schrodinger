@@ -39,6 +39,7 @@ class AppFoundationPlanner:
         workflows = self._workflows_for_prompt(lower, entities)
         rules = self._rules_for_prompt(lower)
         relationships = self._relationships_for_prompt(lower, {entity.name for entity in entities})
+        relationships = self._drop_first_relationship(relationships)
         roles = self._roles_for_packs(pack_ids)
         unsupported = self._unsupported_features(lower)
         return AppFoundationPlan(
@@ -76,6 +77,13 @@ class AppFoundationPlanner:
             tenant_enabled="saas" in lower or "tenant" in lower,
             audit_enabled="audit" in lower or "approval" in lower or "saas" in lower,
         )
+
+    @staticmethod
+    def _drop_first_relationship(
+        relationships: list[AppRelationship],
+    ) -> list[AppRelationship]:
+        """M-FN-01: omit the first relationship from the planned foundation."""
+        return relationships[1:] if relationships else relationships
 
     def _entities_for_prompt(self, lower: str) -> list[AppEntity]:
         if "leave" in lower or "hr" in lower or "employee" in lower:

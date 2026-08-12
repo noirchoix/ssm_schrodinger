@@ -1,0 +1,31 @@
+{
+  "kind": "Study2MutantPreregistration",
+  "mutant_id": "M-FN-01",
+  "intervention_class": "REGRESSION",
+  "mutation": "Remove the first relationship from each non-empty AppFoundationPlan.relationships list.",
+  "expected_first_changed_stage": "foundation",
+  "expected_changed_count": 16,
+  "expected_requirements_changed_count": 0,
+  "expected_negative_control_count": 14,
+  "expected_affected_cases": [
+    "SSMB2-001",
+    "SSMB2-004",
+    "SSMB2-005",
+    "SSMB2-006",
+    "SSMB2-007",
+    "SSMB2-008",
+    "SSMB2-011",
+    "SSMB2-012",
+    "SSMB2-016",
+    "SSMB2-017",
+    "SSMB2-018",
+    "SSMB2-022",
+    "SSMB2-023",
+    "SSMB2-025",
+    "SSMB2-026",
+    "SSMB2-028"
+  ],
+  "expected_generic_assay_verdict": "NO_MATERIAL_CHANGE",
+  "generic_assay_note": "The frozen Study 1 semantic oracle does not score foundation relationships. Stage attribution is the primary M-FN-01 endpoint.",
+  "benchmark_digest": "5cca5dcdeffbea089f61c8f9480f39b93237310646097f9458cc1edc1691b4a7"
+}
