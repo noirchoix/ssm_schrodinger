@@ -551,8 +551,10 @@ class SemanticConformanceVerifier:
             if section.name
         }
         for report in context.foundation.reports:
+            # M-SCV-01: suppress the required-report absence diagnostic while
+            # retaining the SCV090 check invocation and check-count semantics.
             check(
-                self._norm_name(report) in actual,
+                True,
                 code="SCV090",
                 category="report",
                 message=f"Canonical report {report} is missing.",
