@@ -1,0 +1,179 @@
+{
+  "benchmark_digest": "5cca5dcdeffbea089f61c8f9480f39b93237310646097f9458cc1edc1691b4a7",
+  "causal_locks": [
+    "recorded SML SHA-256 identical",
+    "manifest SML hash identical",
+    "SIR hash identical",
+    "resolved IR hash identical",
+    "route module file set identical"
+  ],
+  "corpus": [
+    {
+      "case_id": "SSMB2-002",
+      "recorded_sml_sha256": "0bcd6c9d57310443ad008e30302b54da79b47faef97e7b2d21f199f1e82becba",
+      "registered_route_module_count": 2,
+      "replicate_id": "R00",
+      "route_module_count": 2
+    },
+    {
+      "case_id": "SSMB2-004",
+      "recorded_sml_sha256": "4b6391d1ecd9c6b1158aea8964439d2d88e4aac1c31d4670db477d08a1de151f",
+      "registered_route_module_count": 3,
+      "replicate_id": "R00",
+      "route_module_count": 3
+    },
+    {
+      "case_id": "SSMB2-005",
+      "recorded_sml_sha256": "39f4d8ed60cb99142bc3ccd024e3e45f20e8cbc693b7b542cebb381408160d8c",
+      "registered_route_module_count": 3,
+      "replicate_id": "R00",
+      "route_module_count": 3
+    },
+    {
+      "case_id": "SSMB2-006",
+      "recorded_sml_sha256": "d99bc5393791b895c1563f3d71e778b2e79fd5b58a4994a71ebfad22e481fa7c",
+      "registered_route_module_count": 3,
+      "replicate_id": "R00",
+      "route_module_count": 3
+    },
+    {
+      "case_id": "SSMB2-008",
+      "recorded_sml_sha256": "b7e9eb24de5b620d8dc2bd4ac7f7fb1caa95b6c6cb86745bbd55a6917c1e777f",
+      "registered_route_module_count": 3,
+      "replicate_id": "R00",
+      "route_module_count": 3
+    },
+    {
+      "case_id": "SSMB2-009",
+      "recorded_sml_sha256": "1f8736dd12f14e7e06eb9fa9581f0752c71831ea6544d63dc5550f93ec46811d",
+      "registered_route_module_count": 2,
+      "replicate_id": "R00",
+      "route_module_count": 2
+    },
+    {
+      "case_id": "SSMB2-010",
+      "recorded_sml_sha256": "b99cd0d7c70bff147c7e621442ba0de51519721a0d8ed4ed1f35256357428fe3",
+      "registered_route_module_count": 3,
+      "replicate_id": "R00",
+      "route_module_count": 3
+    },
+    {
+      "case_id": "SSMB2-012",
+      "recorded_sml_sha256": "446b2871be43f0480ae51334766cdb74ad29906b34a0bfbfc1666f47038c5914",
+      "registered_route_module_count": 3,
+      "replicate_id": "R00",
+      "route_module_count": 3
+    },
+    {
+      "case_id": "SSMB2-013",
+      "recorded_sml_sha256": "a71656c4e27e15b20b05ae49c8e3da845365ba9828ce9d26c3857d1d5cabf947",
+      "registered_route_module_count": 2,
+      "replicate_id": "R00",
+      "route_module_count": 2
+    },
+    {
+      "case_id": "SSMB2-014",
+      "recorded_sml_sha256": "5ecd89c53bcd34adbc815b603764c27145ba23ee533728985562de113d8e46a8",
+      "registered_route_module_count": 2,
+      "replicate_id": "R00",
+      "route_module_count": 2
+    },
+    {
+      "case_id": "SSMB2-015",
+      "recorded_sml_sha256": "d237858d1129af9c397cb4e89a781a0ff74cdcd7bf64c5167a99d9ca5cb40b73",
+      "registered_route_module_count": 2,
+      "replicate_id": "R00",
+      "route_module_count": 2
+    },
+    {
+      "case_id": "SSMB2-016",
+      "recorded_sml_sha256": "4424e416791e96aa254cbf98c0aff1b166cc06b1f5ec6b20a858ad1cfe9b624d",
+      "registered_route_module_count": 3,
+      "replicate_id": "R00",
+      "route_module_count": 3
+    },
+    {
+      "case_id": "SSMB2-018",
+      "recorded_sml_sha256": "3a353c61a7319640cf854fcc786154fa0004eac0acef6ddc86993bf518ab2bd2",
+      "registered_route_module_count": 3,
+      "replicate_id": "R00",
+      "route_module_count": 3
+    },
+    {
+      "case_id": "SSMB2-019",
+      "recorded_sml_sha256": "2432644652281f8f71fccc4f8253e328243b5962da615fa11aaf1997cbc30164",
+      "registered_route_module_count": 2,
+      "replicate_id": "R00",
+      "route_module_count": 2
+    },
+    {
+      "case_id": "SSMB2-020",
+      "recorded_sml_sha256": "295b6ee22970ac903a8dd9228fdac7ab410a29e188b9b21df4faaa1495947d06",
+      "registered_route_module_count": 3,
+      "replicate_id": "R00",
+      "route_module_count": 3
+    },
+    {
+      "case_id": "SSMB2-021",
+      "recorded_sml_sha256": "6b185e93ba9794c85b3f80993e7449dcfe6543c7a9b5f66bbf2265c426854d0b",
+      "registered_route_module_count": 2,
+      "replicate_id": "R00",
+      "route_module_count": 2
+    },
+    {
+      "case_id": "SSMB2-022",
+      "recorded_sml_sha256": "b31b303973230a2a605c2c06ec110efbf4d42a5c6ffa8b06e5e62d2c58e43f78",
+      "registered_route_module_count": 3,
+      "replicate_id": "R00",
+      "route_module_count": 3
+    },
+    {
+      "case_id": "SSMB2-024",
+      "recorded_sml_sha256": "db40f9dc5ca3654f72cd8b0047e641f1bd5f39258bdfb62ad28ed6a25bad69e8",
+      "registered_route_module_count": 2,
+      "replicate_id": "R00",
+      "route_module_count": 2
+    },
+    {
+      "case_id": "SSMB2-026",
+      "recorded_sml_sha256": "58cb3a9989c42944858511d8071760664ac6f040b44933f3e0fae23edd308e3c",
+      "registered_route_module_count": 3,
+      "replicate_id": "R00",
+      "route_module_count": 3
+    }
+  ],
+  "expected_affected_cases": [
+    "SSMB2-002",
+    "SSMB2-004",
+    "SSMB2-005",
+    "SSMB2-006",
+    "SSMB2-008",
+    "SSMB2-009",
+    "SSMB2-010",
+    "SSMB2-012",
+    "SSMB2-013",
+    "SSMB2-014",
+    "SSMB2-015",
+    "SSMB2-016",
+    "SSMB2-018",
+    "SSMB2-019",
+    "SSMB2-020",
+    "SSMB2-021",
+    "SSMB2-022",
+    "SSMB2-024",
+    "SSMB2-026"
+  ],
+  "expected_affected_count": 19,
+  "expected_first_causal_stage": "generated_tree",
+  "expected_negative_control_cases": [],
+  "expected_negative_control_count": 0,
+  "expected_target_effect": "For each affected case, generated app/main.py contains exactly one fewer app.include_router(domain.router) registration.",
+  "intervention_class": "REGRESSION",
+  "kind": "Study2MutantPreregistration",
+  "mutant_id": "M-TG-01",
+  "mutation": "Omit the first deterministic domain router registration from generated app/main.py while preserving route module generation.",
+  "schema_version": "1.0",
+  "selected_cases": 19,
+  "selection_rule": "first ACCEPTED Study1B replicate per benchmark case",
+  "target_component": "PythonFastAPITarget._main"
+}
