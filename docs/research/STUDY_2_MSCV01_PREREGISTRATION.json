@@ -1,0 +1,33 @@
+{
+  "benchmark_digest": "5cca5dcdeffbea089f61c8f9480f39b93237310646097f9458cc1edc1691b4a7",
+  "causal_input_locks": [
+    "canonical context fingerprint identical",
+    "valid SML SHA-256 identical",
+    "missing-report SML SHA-256 identical",
+    "missing-policy SML SHA-256 identical"
+  ],
+  "expected_first_causal_stage": "semantic_conformance",
+  "intervention_class": "REGRESSION",
+  "kind": "Study2MutantPreregistration",
+  "mutant_id": "M-SCV-01",
+  "mutation": "Suppress the SCV090 required-report absence diagnostic while preserving all other semantic-conformance checks and check-count execution.",
+  "negative_controls": [
+    "valid deterministic SML remains accepted",
+    "missing ErrorHandling policy remains rejected with SCV100"
+  ],
+  "notes": "Operationally reachable report-positive cases are frozen from the baseline challenge before mutation; upstream-blocked report-positive cases are retained as verifier-unit challenge cases but separated from pipeline-reachable cases.",
+  "primary_challenge": "Remove exactly the first canonical #Report section from deterministic SML and replay identical defective SML bytes through baseline and mutant verifiers.",
+  "report_positive_case_ids": [
+    "SSMB2-001",
+    "SSMB2-002",
+    "SSMB2-010",
+    "SSMB2-014",
+    "SSMB2-021",
+    "SSMB2-027",
+    "SSMB2-028"
+  ],
+  "report_positive_cases": 7,
+  "schema_version": "1.0",
+  "target_component": "SemanticConformanceVerifier",
+  "target_diagnostic": "SCV090"
+}
