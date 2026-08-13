@@ -1782,7 +1782,8 @@ class PythonFastAPITarget:
                 "",
             ]
         )
-        lines.extend(f"app.include_router({module}.router)" for module in modules)
+        # M-TG-01: omit the first deterministic domain router registration.
+        lines.extend(f"app.include_router({module}.router)" for module in modules[1:])
         lines.extend(
             [
                 "",
