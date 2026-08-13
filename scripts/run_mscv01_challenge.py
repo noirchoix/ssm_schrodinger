@@ -176,11 +176,7 @@ def run(
         if context.foundation.reports:
             rows.append(_record_case(case_dir))
 
-    reachable = [
-        row
-        for row in rows
-        if row["reachable_without_upstream_block"]
-    ]
+    reachable = [row for row in rows if row["reachable_without_upstream_block"]]
 
     payload = {
         "kind": "Study2MSCV01DeterministicChallenge",
@@ -189,34 +185,13 @@ def run(
         "target_diagnostic": "SCV090",
         "report_positive_cases": len(rows),
         "reachable_report_positive_cases": len(reachable),
-        "report_positive_case_ids": [
-            row["case_id"]
-            for row in rows
-        ],
-        "reachable_case_ids": [
-            row["case_id"]
-            for row in reachable
-        ],
-        "valid_passes": sum(
-            bool(row["valid"]["accepted"])
-            for row in rows
-        ),
-        "missing_report_passes": sum(
-            bool(row["missing_report"]["accepted"])
-            for row in rows
-        ),
-        "missing_report_scv090": sum(
-            "SCV090" in row["missing_report"]["codes"]
-            for row in rows
-        ),
-        "missing_policy_failures": sum(
-            not bool(row["missing_policy"]["accepted"])
-            for row in rows
-        ),
-        "missing_policy_scv100": sum(
-            "SCV100" in row["missing_policy"]["codes"]
-            for row in rows
-        ),
+        "report_positive_case_ids": [row["case_id"] for row in rows],
+        "reachable_case_ids": [row["case_id"] for row in reachable],
+        "valid_passes": sum(bool(row["valid"]["accepted"]) for row in rows),
+        "missing_report_passes": sum(bool(row["missing_report"]["accepted"]) for row in rows),
+        "missing_report_scv090": sum("SCV090" in row["missing_report"]["codes"] for row in rows),
+        "missing_policy_failures": sum(not bool(row["missing_policy"]["accepted"]) for row in rows),
+        "missing_policy_scv100": sum("SCV100" in row["missing_policy"]["codes"] for row in rows),
         "records": rows,
     }
 
@@ -232,11 +207,7 @@ def run(
 
     print(
         json.dumps(
-            {
-                key: value
-                for key, value in payload.items()
-                if key != "records"
-            },
+            {key: value for key, value in payload.items() if key != "records"},
             indent=2,
         )
     )
@@ -247,23 +218,13 @@ def compare(
     mutant_path: Path,
     output_path: Path,
 ) -> None:
-    baseline = json.loads(
-        baseline_path.read_text(encoding="utf-8")
-    )
+    baseline = json.loads(baseline_path.read_text(encoding="utf-8"))
 
-    mutant = json.loads(
-        mutant_path.read_text(encoding="utf-8")
-    )
+    mutant = json.loads(mutant_path.read_text(encoding="utf-8"))
 
-    b_rows = {
-        row["case_id"]: row
-        for row in baseline["records"]
-    }
+    b_rows = {row["case_id"]: row for row in baseline["records"]}
 
-    m_rows = {
-        row["case_id"]: row
-        for row in mutant["records"]
-    }
+    m_rows = {row["case_id"]: row for row in mutant["records"]}
 
     if set(b_rows) != set(m_rows):
         raise SystemExit("Baseline/mutant case sets differ.")
@@ -277,55 +238,25 @@ def compare(
         rows.append(
             {
                 "case_id": case_id,
-                "reachable_without_upstream_block": b[
-                    "reachable_without_upstream_block"
-                ],
-                "same_context": (
-                    b["context_fingerprint"]
-                    == m["context_fingerprint"]
-                ),
-                "same_valid_sml": (
-                    b["valid_sml_sha256"]
-                    == m["valid_sml_sha256"]
-                ),
+                "reachable_without_upstream_block": b["reachable_without_upstream_block"],
+                "same_context": (b["context_fingerprint"] == m["context_fingerprint"]),
+                "same_valid_sml": (b["valid_sml_sha256"] == m["valid_sml_sha256"]),
                 "same_missing_report_sml": (
-                    b["missing_report_sml_sha256"]
-                    == m["missing_report_sml_sha256"]
+                    b["missing_report_sml_sha256"] == m["missing_report_sml_sha256"]
                 ),
                 "same_missing_policy_sml": (
-                    b["missing_policy_sml_sha256"]
-                    == m["missing_policy_sml_sha256"]
+                    b["missing_policy_sml_sha256"] == m["missing_policy_sml_sha256"]
                 ),
-                "baseline_missing_report_accepted": (
-                    b["missing_report"]["accepted"]
-                ),
-                "mutant_missing_report_accepted": (
-                    m["missing_report"]["accepted"]
-                ),
-                "baseline_missing_report_codes": (
-                    b["missing_report"]["codes"]
-                ),
-                "mutant_missing_report_codes": (
-                    m["missing_report"]["codes"]
-                ),
-                "baseline_missing_policy_accepted": (
-                    b["missing_policy"]["accepted"]
-                ),
-                "mutant_missing_policy_accepted": (
-                    m["missing_policy"]["accepted"]
-                ),
-                "baseline_valid_accepted": (
-                    b["valid"]["accepted"]
-                ),
-                "mutant_valid_accepted": (
-                    m["valid"]["accepted"]
-                ),
-                "baseline_conformance_fingerprint": (
-                    b["missing_report"]["semantic_fingerprint"]
-                ),
-                "mutant_conformance_fingerprint": (
-                    m["missing_report"]["semantic_fingerprint"]
-                ),
+                "baseline_missing_report_accepted": (b["missing_report"]["accepted"]),
+                "mutant_missing_report_accepted": (m["missing_report"]["accepted"]),
+                "baseline_missing_report_codes": (b["missing_report"]["codes"]),
+                "mutant_missing_report_codes": (m["missing_report"]["codes"]),
+                "baseline_missing_policy_accepted": (b["missing_policy"]["accepted"]),
+                "mutant_missing_policy_accepted": (m["missing_policy"]["accepted"]),
+                "baseline_valid_accepted": (b["valid"]["accepted"]),
+                "mutant_valid_accepted": (m["valid"]["accepted"]),
+                "baseline_conformance_fingerprint": (b["missing_report"]["semantic_fingerprint"]),
+                "mutant_conformance_fingerprint": (m["missing_report"]["semantic_fingerprint"]),
             }
         )
 
@@ -337,11 +268,7 @@ def compare(
         for row in rows
     )
 
-    reachable_rows = [
-        row
-        for row in rows
-        if row["reachable_without_upstream_block"]
-    ]
+    reachable_rows = [row for row in rows if row["reachable_without_upstream_block"]]
 
     target_behavior_changed = bool(reachable_rows) and all(
         (not row["baseline_missing_report_accepted"])
@@ -360,20 +287,16 @@ def compare(
     )
 
     valid_control_preserved = all(
-        row["baseline_valid_accepted"]
-        == row["mutant_valid_accepted"]
-        for row in rows
+        row["baseline_valid_accepted"] == row["mutant_valid_accepted"] for row in rows
     )
 
     unrelated_control_preserved = all(
-        row["baseline_missing_policy_accepted"]
-        == row["mutant_missing_policy_accepted"]
+        row["baseline_missing_policy_accepted"] == row["mutant_missing_policy_accepted"]
         for row in rows
     )
 
     conformance_changed = all(
-        row["baseline_conformance_fingerprint"]
-        != row["mutant_conformance_fingerprint"]
+        row["baseline_conformance_fingerprint"] != row["mutant_conformance_fingerprint"]
         for row in rows
     )
 
@@ -382,10 +305,7 @@ def compare(
         "schema_version": "1.0",
         "target_diagnostic": "SCV090",
         "cases": len(rows),
-        "reachable_cases": sum(
-            row["reachable_without_upstream_block"]
-            for row in rows
-        ),
+        "reachable_cases": sum(row["reachable_without_upstream_block"] for row in rows),
         "causal_input_lock": causal_lock,
         "target_behavior_changed": target_behavior_changed,
         "target_behavior_changed_all_report_positive": (
@@ -396,11 +316,7 @@ def compare(
         "semantic_conformance_changed": conformance_changed,
         "first_causal_stage": (
             "semantic_conformance"
-            if (
-                causal_lock
-                and target_behavior_changed
-                and conformance_changed
-            )
+            if (causal_lock and target_behavior_changed and conformance_changed)
             else None
         ),
         "qualified": all(
@@ -427,19 +343,13 @@ def compare(
 
     print(
         json.dumps(
-            {
-                key: value
-                for key, value in payload.items()
-                if key != "records"
-            },
+            {key: value for key, value in payload.items() if key != "records"},
             indent=2,
         )
     )
 
     if not payload["qualified"]:
-        raise SystemExit(
-            "M-SCV-01 deterministic challenge did not qualify."
-        )
+        raise SystemExit("M-SCV-01 deterministic challenge did not qualify.")
 
 
 def main() -> None:
