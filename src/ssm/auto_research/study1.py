@@ -4,7 +4,7 @@ import hashlib
 import json
 import os
 import shutil
-import subprocess
+import subprocess  # nosec B404
 import sys
 import tempfile
 import time
@@ -317,7 +317,7 @@ def execute_runtime_contract(generated_app: Path, contract_path: Path) -> dict[s
         script.write_text(_runtime_probe_script(), encoding="utf-8")
         env = os.environ.copy()
         env["PYTHONPATH"] = str(generated_app.resolve())
-        completed = subprocess.run(
+        completed = subprocess.run(  # nosec B603
             [sys.executable, str(script), str(contract_path.resolve())],
             cwd=generated_app,
             env=env,
