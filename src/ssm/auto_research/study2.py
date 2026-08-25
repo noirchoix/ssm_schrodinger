@@ -6,7 +6,7 @@ import json
 import math
 import os
 import platform
-import subprocess
+import subprocess  # nosec B404
 import sys
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -83,7 +83,7 @@ def _write_json(path: Path, payload: object) -> None:
 
 
 def _git(root: Path, *args: str) -> str:
-    completed = subprocess.run(
+    completed = subprocess.run(  # nosec B603 B607
         ["git", "-C", str(root), *args],
         check=True,
         capture_output=True,
@@ -94,7 +94,7 @@ def _git(root: Path, *args: str) -> str:
 
 def _repository_root(start: str | Path = ".") -> Path:
     resolved = Path(start).resolve()
-    output = subprocess.run(
+    output = subprocess.run(  # nosec B603 B607
         ["git", "-C", str(resolved), "rev-parse", "--show-toplevel"],
         check=True,
         capture_output=True,
